@@ -44,8 +44,9 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
-        _LOGGER.debug("[_handle_coordinator_update] Entity is now %s", str(self.device))
-        self.async_write_ha_state()
+        #_LOGGER.debug("[_handle_coordinator_update] Entity is now %s", str(self.device))
+        #self.async_write_ha_state()
+        self.schedule_update_ha_state()
 
     
     @property
@@ -75,7 +76,7 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
 
     @property
     def extra_state_attributes(self):
-        """Return the extra state attributes."""
+        """Return the extra  attributes."""
         attrs = {}
         #attrs["extra_info"] = "Extra Info"
         return attrs
@@ -84,9 +85,9 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
     @property
     def alarm_state(self) -> AlarmControlPanelState | None:
         """One of the alarm values listed in the states."""
-        if self.device.state == "disarmed":
+        if self.device.native_state == "disarmed":
             return AlarmControlPanelState.DISARMED
-        elif self.device.state == "home":
+        elif self.device.native_state == "home":
             return AlarmControlPanelState.ARMED_HOME
         return AlarmControlPanelState.ARMED_AWAY
 

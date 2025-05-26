@@ -35,6 +35,7 @@ class EmergencyButton(CoordinatorEntity, ButtonEntity):
     def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: PanelEntity) -> None:
         """Initialise sensor."""
         super().__init__(coordinator)
+        self.c = coordinator
         self.device = device
         self.device_id = device.device_id
         self._icon = device.icon
@@ -44,6 +45,12 @@ class EmergencyButton(CoordinatorEntity, ButtonEntity):
         """Return device information."""
         return self.coordinator.get_device_info()
 
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Update sensor with latest data from coordinator."""
+        #_LOGGER.debug("[_handle_coordinator_update] Entity is now %s", str(self.device))
+        #self.async_write_ha_state()
+        self.schedule_update_ha_state()
 
     @property
     def name(self) -> str:
@@ -59,7 +66,7 @@ class EmergencyButton(CoordinatorEntity, ButtonEntity):
 
     @property
     def extra_state_attributes(self):
-        """Return the extra state attributes."""
+        """Return the extra  attributes."""
         attrs = {}
         #attrs["extra_info"] = "Extra Info"
         return attrs

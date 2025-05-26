@@ -48,8 +48,9 @@ class ZoneSensor(CoordinatorEntity, SensorEntity):
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator. This method is called by your GarnetPanelIntegrationCoordinator when a successful update runs."""
         self.device = self.coordinator.get_device_by_id(self.device.device_type, self.device_id)
-        self._attr_native_value = self.device.state
-        self.async_write_ha_state()
+        #self._attr_native_value = self.device.native_state
+        #self.async_write_ha_state()
+        self.schedule_update_ha_state()
 
 
     @property
@@ -93,13 +94,21 @@ class ZoneSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def state(self) -> any:
-        return self._attr_native_value
-    
+
+        if self.device.alarmed:
+            return "Alarmed"
+        if self.device.native_state < 8:
+            return ["Normal", "Open", "Inhibited", "Inhibited", "Armed", "ERROR", "Armed(Inhibited)", "ERROR"][self.device.native_state]
+        _LOGGER.error("Combinacion no permitida de estado %s", str(self.device))
+        return "ERROR"
+
+
     @property
     def icon(self):
         if(self._icon):
             return self._icon
         return None    
+
 
 class TextSensor(CoordinatorEntity, SensorEntity):
     """Implementation of a zone monitoring sensor."""
@@ -116,9 +125,10 @@ class TextSensor(CoordinatorEntity, SensorEntity):
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator. This method is called by your GarnetPanelIntegrationCoordinator when a successful update runs."""
         self.device = self.coordinator.get_device_by_id(self.device.device_type, self.device_id)
-        self._attr_native_value = self.device.state
-        self.async_write_ha_state()
-    
+        #self._attr_native_value = self.device.native_state
+        #self.async_write_ha_state()
+        self.schedule_update_ha_state()
+   
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -150,9 +160,7 @@ class TextSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def state(self) -> any:
-        _LOGGER.error("################################################################### STATE")
-        _LOGGER.error("################################################################### " + str(self.device.state))
-        return self.device.state
+        return self.device.native_state
     
     @property
     def icon(self):

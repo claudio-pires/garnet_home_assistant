@@ -1,6 +1,6 @@
 {
   "domain": "garnet_tech",
-  "name": "Plugin for integrate Garnet technologies alarm panels",
+  "name": "Garnet technologies alarm panels integration",
   "codeowners": ["@claudio-pires"],
   "config_flow": true,
   "dependencies": [],

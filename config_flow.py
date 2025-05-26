@@ -12,8 +12,8 @@ from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
-from .api import API, APIConnectionError
-from .const import DOMAIN, CONF_ACCOUNT, CONF_GARNETUSER, CONF_GARNETPASS, MIN_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+from .api import GarnetAPI, APIConnectionError
+from .const import DOMAIN, CONF_ACCOUNT, CONF_SYSTEM, CONF_GARNETUSER, CONF_GARNETPASS, MIN_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,7 +23,8 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_GARNETUSER): str,
         vol.Required(CONF_GARNETPASS): str,
-        vol.Required(CONF_ACCOUNT, description={"suggested_value": "#0001"}): str,
+        vol.Required(CONF_SYSTEM): str,
+        vol.Required(CONF_ACCOUNT, description={"suggested_value": "0001"}): str,
     }
 )
 
@@ -34,12 +35,13 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
     _LOGGER.debug("**** validate_input")
-    api = API(data[CONF_GARNETUSER], data[CONF_GARNETPASS], data[CONF_ACCOUNT])
+    api = GarnetAPI(hass, data[CONF_GARNETUSER], data[CONF_GARNETPASS], data[CONF_ACCOUNT], data[CONF_SYSTEM])
     try:
-        await hass.async_add_executor_job(api.connect)
+       await hass.async_add_executor_job(api.connect)
     except APIConnectionError as err:
+        _LOGGER.exception(err)
         raise CannotConnect from err
-    return {"title": f"Garnet Panel Integration - {data[CONF_ACCOUNT]}"}
+    return {"title": f"Garnet Panel Integration - {data[CONF_SYSTEM]}"}
 
 
 class GarnetIntConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -65,11 +67,14 @@ class GarnetIntConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Validate that the setup data is valid and if not handle errors.
                 # The errors["base"] values match the values in your strings.json and translation files.
                 info = await validate_input(self.hass, user_input)
-            except CannotConnect:
+            except CannotConnect as err: 
+                _LOGGER.exception(err)
                 errors["base"] = "cannot_connect"
-            except InvalidAuth:
+            except InvalidAuth as err: 
+                _LOGGER.exception(err)
                 errors["base"] = "invalid_auth"
-            except Exception:  # pylint: disable=broad-except
+            except Exception as err:    # pylint: disable=broad-except
+                _LOGGER.exception(err)
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
 
@@ -97,7 +102,7 @@ class GarnetIntConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                user_input[CONF_ACCOUNT] = config_entry.data[CONF_ACCOUNT]
+                user_input[CONF_SYSTEM] = config_entry.data[CONF_SYSTEM]
                 await validate_input(self.hass, user_input)
             except CannotConnect:
                 errors["base"] = "cannot_connect"

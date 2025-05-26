@@ -9,9 +9,9 @@ from homeassistant.core import DOMAIN, HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .api import APIAuthError, PanelEntity, EntityType, API
+from .api import APIAuthError, PanelEntity, EntityType, GarnetAPI
 from .const import DEFAULT_SCAN_INTERVAL
-from .const import CONF_ACCOUNT, CONF_GARNETUSER, CONF_GARNETPASS, MIN_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+from .const import CONF_ACCOUNT, CONF_GARNETUSER, CONF_GARNETPASS, CONF_SYSTEM
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,29 +33,30 @@ class GarnetPanelIntegrationCoordinator(DataUpdateCoordinator):
         """Initialize coordinator."""
 
         self.account = config_entry.data[CONF_ACCOUNT]
+        self.systemid = config_entry.data[CONF_SYSTEM]
         self.user = config_entry.data[CONF_GARNETUSER]
         self.pwd = config_entry.data[CONF_GARNETPASS]
         self.uniqueid = config_entry.unique_id
- #       self.poll_interval = config_entry.options.get(MIN_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)    # set variables from options.  
-                                                                                                    # You need a default here incase options have not been set
         super().__init__(hass, _LOGGER, name=f"{DOMAIN} ({self.uniqueid})", update_method=self.update_data, update_interval=None)   # Initialise DataUpdateCoordinator
                                                                                                               # update_method is the update method 
                                                                                                               # to get devices on first load.
                                                                                                               # update_interval = None makes data will be pushed.
-        self.api = API(user=self.user, pwd=self.pwd, account=self.account)
+        self.api = GarnetAPI(hass=hass, user=self.user, pwd=self.pwd, account=self.account, systemid=self.systemid)
         self.api.setcallback(message_callback=self.devices_update_callback)
 
  
     def get_device_info(self) -> DeviceInfo | None:
         """Returns device info for panel"""
-        panel = self.api.get_panel()
+        panel = self.api.httpapi.system
         if panel is not None:
             return DeviceInfo(name = f"{panel.name} ({panel.id})", manufacturer = panel.manufacturer, model = panel.modelName, 
                               sw_version = panel.versionName, identifiers = {(DOMAIN, f"{DOMAIN} ({self.uniqueid})")})
         
 
-    async def devices_update_callback(self, devs: list[PanelEntity]):
+#    async def devices_update_callback(self, devs: list[PanelEntity]):
+    def devices_update_callback(self, devs: list[PanelEntity]):
         """Receive callback from api with device update."""
+        _LOGGER.debug("[devices_update_callback] Updating devices status")
         self.async_set_updated_data(APIData(self.api.controller_name, devs))
 
 
@@ -70,10 +71,11 @@ class GarnetPanelIntegrationCoordinator(DataUpdateCoordinator):
                 await self.hass.async_add_executor_job(self.api.connect)
             devices = await self.hass.async_add_executor_job(self.api.get_devices)
         except APIAuthError as err:
-            _LOGGER.error(err)
+            _LOGGER.exception(err)
             raise UpdateFailed(err) from err
         except Exception as err:
             # This will show entities as unavailable by raising UpdateFailed exception
+            _LOGGER.exception(err)
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
         # What is returned here is stored in self.data by the DataUpdateCoordinator

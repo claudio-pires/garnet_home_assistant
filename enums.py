@@ -16,6 +16,7 @@ class emergencytype(Enum):
     unknown = 2
     fire = 3
     panic = 4
+    
 
 class siacode(Enum):
     none =            -1

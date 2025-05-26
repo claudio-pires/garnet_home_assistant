@@ -58,7 +58,7 @@ class SIAData:
                 self.message_str = self.message_str[self.n:]
                
                 self.n = self.message_str.find('[')
-                self.account = self.message_str[:self.n]
+                self.account = self.message_str[1:self.n] # Se agrega 1 para quitar el numeral al comienzo
 
                 self.message_str = self.message_str[self.n:]
                

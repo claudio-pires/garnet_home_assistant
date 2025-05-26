@@ -47,8 +47,9 @@ class PartitionSensor(CoordinatorEntity, BinarySensorEntity):
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
         #self.device = self.coordinator.get_device_by_id(self.device.device_type, self.device_id)
-        _LOGGER.debug("[_handle_coordinator_update] Entity is now %s", str(self.device))
-        self.async_write_ha_state()
+        #_LOGGER.debug("[_handle_coordinator_update] Entity is now %s", str(self.device))
+        #self.async_write_ha_state()
+        self.schedule_update_ha_state()
 
 
     @property
@@ -74,7 +75,7 @@ class PartitionSensor(CoordinatorEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         """Return if the binary sensor is on."""
         # This needs to enumerate to true or false
-        return self.device.state
+        return self.device.alarmed
 
 
     @property

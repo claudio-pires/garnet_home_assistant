@@ -43,8 +43,9 @@ class HowlerSwitch(CoordinatorEntity, SwitchEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
-        _LOGGER.debug("[_handle_coordinator_update] Entity is now %s", str(self.device))
-        self.async_write_ha_state()
+        #_LOGGER.debug("[_handle_coordinator_update] Entity is now %s", str(self.device))
+        #self.async_write_ha_state()
+        self.schedule_update_ha_state()
 
 
     @property
@@ -62,7 +63,7 @@ class HowlerSwitch(CoordinatorEntity, SwitchEntity):
     @property
     def is_on(self) -> bool | None:
         """Return if the binary sensor is on."""
-        return self.device.state == "on"
+        return self.device.native_state == "on"
 
 
     @property
