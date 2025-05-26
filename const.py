@@ -1,6 +1,6 @@
-"""Constants for the Push Data Example integration."""
+"""Constants for the Garnet Panel integration."""
 
-DOMAIN = "garnet_tech"
+DOMAIN = "garnet-home-assistant"
 
 DEFAULT_SCAN_INTERVAL = 60
 MIN_SCAN_INTERVAL = 10

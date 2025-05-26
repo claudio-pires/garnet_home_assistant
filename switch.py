@@ -9,6 +9,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+
 from .api import PanelEntity, EntityType
 from .const import DOMAIN
 from .coordinator import GarnetPanelIntegrationCoordinator
@@ -18,10 +19,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
-    """Set up the Binary Sensors."""
-    # This gets the data update coordinator from hass.data as specified in your __init__.py
+    """Set up the Binary Sensors. En este momento solo la sirena"""
     coordinator: GarnetPanelIntegrationCoordinator = hass.data[DOMAIN][config_entry.entry_id].coordinator
-
     async_add_entities([
         HowlerSwitch(coordinator, device)
         for device in coordinator.data.devices
@@ -44,8 +43,7 @@ class HowlerSwitch(CoordinatorEntity, SwitchEntity):
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
         #_LOGGER.debug("[_handle_coordinator_update] Entity is now %s", str(self.device))
-        #self.async_write_ha_state()
-        self.schedule_update_ha_state()
+        self.schedule_update_ha_state()    
 
 
     @property
@@ -69,8 +67,6 @@ class HowlerSwitch(CoordinatorEntity, SwitchEntity):
     @property
     def unique_id(self) -> str:
         """Return unique id."""
-        # All entities must have a unique id.  Think carefully what you want this to be as
-        # changing it later will cause HA to create new entities.
         return f"{DOMAIN}-{self.device.device_unique_id}"
     
 

@@ -1,10 +1,10 @@
 {
-  "domain": "garnet_tech",
-  "name": "Garnet technologies alarm panels integration",
+  "domain": "garnet-home-assistant",
+  "name": "Garnet alarm panels integration",
   "codeowners": ["@claudio-pires"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/claudio-pires/garnet_tech",
+  "documentation": "https://github.com/claudio-pires/garnet-home-assistant",
   "homekit": {},
   "iot_class": "local_polling",
   "requirements": [],

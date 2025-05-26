@@ -25,7 +25,7 @@ Esta integracion ha sido probada con un panel PC-732-G con comunicador 500G
 ## Instalación
 
 ### Opción 1: Instalación Manual
-1. Descargar la carpeta `garnet-tech` desde la [última release](https://github.com/claudio-pires/garnet_tech/releases/latest)
+1. Descargar la carpeta `garnet-home-assistant` desde la [última release](https://github.com/claudio-pires/garnet-home-assistant/releases/latest)
 2. Copiarlo a la carpeta [`carpeta custom_components`](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations)
 3. Reiniciar Home Assistant
 
@@ -47,11 +47,11 @@ Esta integracion ha sido probada con un panel PC-732-G con comunicador 500G
 3. Tu comunicador debe tener una conexion a la red Wifi funcionando. Es necesario configurar el monitoreo por Wifi y asignar la direccion IP de la receptora con la IP de tu controlador home assistant. Tambien podes ingresar `homeassistant.local`. El puerto debe ser `2123`. Ingresa un numero de abonado y el keepalive que debe ser `1` minuto. El protocolo debe ser `SDC2`.
 
 ### Crear la integracion
-1. En Home assistant ir a `Settings`, luego `Devices & services` y hacer clic en el boton `+ ADD INTEGRATION`. Buscar `Garnet tech` y seleccionar.
+1. En Home assistant ir a `Settings`, luego `Devices & services` y hacer clic en el boton `+ ADD INTEGRATION`. Buscar `Garnet` y seleccionar.
 2. Ingresar los datos de acceso a `Garnet Control`, el numero de sistema y el numero de abonado.
 
 
 
 ## Contribución
-- Son bienvenidas las solicitudes de nuevas funcionalidades y los reportes de bugs! Abrir un [issue en GitHub](https://github.com/claudio-pires/garnet_tech/issues/new/choose).
+- Son bienvenidas las solicitudes de nuevas funcionalidades y los reportes de bugs! Abrir un [issue en GitHub](https://github.com/claudio-pires/garnet-home-assistant/issues/new/choose).
 - Bienvenidos tambien quienes deseen colaborar en el mantenimiento y agregado de nuevas funcionalidades

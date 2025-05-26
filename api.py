@@ -40,7 +40,6 @@ class PanelEntity:
     device_type: EntityType
     native_state: int | bool | str
     alarmed: bool
-#    enabled: bool
     icon: str 
     uptime: float
 
@@ -143,13 +142,14 @@ class GarnetAPI:
     def __sia_processing_task(self, message: str = "", partition: int = 0, zone: int = 0, user: int = 0, action: siacode = siacode.none, keepalive: bool = False) -> None:
         """Funcion que recibe notificaciones del cliente. No debe ser bloqueante"""
         update = False
-        _LOGGER.info("message:" + message +", partition:"+str(partition)+", zone:"+str(zone)+", user:"+str(user)+", action:"+str(action)+", keepalive:"+str(keepalive)+"")
+        _LOGGER.debug("[__sia_processing_task] receives <message:" + message +", partition:"+str(partition)+", zone:"+str(zone)+", user:"+str(user)+", action:"+str(action)+", keepalive:"+str(keepalive)+">")
         if(keepalive):
             device = self.__get_device_by_id__(COMM_BASE_ID)
             device.uptime = time.time()
         else:
             if(action == siacode.none):
                 _LOGGER.warning(message) # Se trata de un codigo que no se procesa
+                _LOGGER.warning("Registre un issue en https://github.com/claudio-pires/garnet-home-assistant/issues/new/choose informando sobre este evento") # Se trata de un codigo que no se procesa
             elif(action == siacode.bypass):
                 self.httpapi.zones[zone - 1].bypassed = True
                 device = self.__get_device_by_id__(ZONE_BASE_ID + zone - 1)
