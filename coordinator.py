@@ -10,7 +10,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from .api import APIAuthError, PanelEntity, EntityType, GarnetAPI
-from .const import DEFAULT_SCAN_INTERVAL
 from .const import CONF_ACCOUNT, CONF_GARNETUSER, CONF_GARNETPASS, CONF_SYSTEM
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,6 +35,7 @@ class GarnetPanelIntegrationCoordinator(DataUpdateCoordinator):
         self.systemid = config_entry.data[CONF_SYSTEM]
         self.user = config_entry.data[CONF_GARNETUSER]
         self.pwd = config_entry.data[CONF_GARNETPASS]
+
         self.uniqueid = config_entry.unique_id
         super().__init__(hass, _LOGGER, name=f"{DOMAIN} ({self.uniqueid})", update_method=self.update_data, update_interval=None)   # Initialise DataUpdateCoordinator
                                                                                                               # update_method is the update method 
@@ -53,7 +53,6 @@ class GarnetPanelIntegrationCoordinator(DataUpdateCoordinator):
                               sw_version = panel.versionName, identifiers = {(DOMAIN, f"{DOMAIN} ({self.uniqueid})")})
         
 
-#    async def devices_update_callback(self, devs: list[PanelEntity]):
     def devices_update_callback(self, devs: list[PanelEntity]):
         """Receive callback from api with device update."""
         _LOGGER.debug("[devices_update_callback] Updating devices status")

@@ -70,4 +70,4 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     unload_ok = await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)   # Unload platforms
     if unload_ok:
         hass.data[DOMAIN].pop(config_entry.entry_id)        # Remove the config entry from the hass data object.
-    return unload_ok        # Return that unloading was successful.
+    return unload_ok                                        # Return that unloading was successful.

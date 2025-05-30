@@ -16,8 +16,7 @@ from .httpdata import Zone, Partition
 
 from homeassistant.core import HomeAssistant
 
-from .enums import siacode
-from .siaserver import SIAUDPServer
+from .siaserver import SIAUDPServer, siacode
 from .const import *
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,7 +44,7 @@ class PanelEntity:
 
 
     def __str__(self):
-        return "<device_id: " + str(self.device_id) + \
+        return "<PanelEntity: device_id: " + str(self.device_id) + \
                 ", device_unique_id: \"" + self.device_unique_id + \
                 "\", name: \"" + self.name + \
                 "\", device_type: \"" + str(self.device_type) + \
@@ -85,6 +84,7 @@ class GarnetAPI:
         self.system = None
         self.hass = hass
 
+
     def connect(self) -> bool:
         """Devuelve estado de conexion al coordinador"""
         try:
@@ -101,7 +101,7 @@ class GarnetAPI:
             self.connected = True
 
             # Finalmente crea la tarea de monitoreo de keepalive
-            self.connection_monitor_task = threading.Thread(target=self.__connection_monitor_task)
+            self.connection_monitor_task = threading.Thread(target=self.__connection_monitor_task, name="keepalive")
             self.connection_monitor_task.start()
 
             return self.connected
@@ -128,10 +128,10 @@ class GarnetAPI:
         s = self.__get_device_by_id__(COMM_BASE_ID)
         while(self.connected):
             try:
-                time.sleep(60)
+                time.sleep(60)      #TODO Tomar el tiempo de una configuracion del sistema, cada tablero tendra siu propia configuracion
                 t = time.time() - s.uptime
                 n = "Disconnected" if t > 90 else "Connected"
-                _LOGGER.debug("Chequeando conexion t=%d de %s",t, s.native_state)
+                _LOGGER.debug("Checking last keepalive received was %d seconds before, previous state was %s",t, s.native_state)
                 if n != s.native_state:
                     s.native_state = n
                     self.__coordinator_update_callback(self.get_devices())
@@ -139,83 +139,78 @@ class GarnetAPI:
                 _LOGGER.exception(err)
 
 
-    def __sia_processing_task(self, message: str = "", partition: int = 0, zone: int = 0, user: int = 0, action: siacode = siacode.none, keepalive: bool = False) -> None:
+    def __sia_processing_task(self, partition: int = 0, zone: int = 0, user: int = 0, action: siacode = siacode.none) -> None:
         """Funcion que recibe notificaciones del cliente. No debe ser bloqueante"""
         update = False
-        _LOGGER.debug("[__sia_processing_task] receives <message:" + message +", partition:"+str(partition)+", zone:"+str(zone)+", user:"+str(user)+", action:"+str(action)+", keepalive:"+str(keepalive)+">")
-        if(keepalive):
-            device = self.__get_device_by_id__(COMM_BASE_ID)
-            device.uptime = time.time()
-        else:
-            if(action == siacode.none):
-                _LOGGER.warning(message) # Se trata de un codigo que no se procesa
-                _LOGGER.warning("Registre un issue en https://github.com/claudio-pires/garnet-home-assistant/issues/new/choose informando sobre este evento") # Se trata de un codigo que no se procesa
-            elif(action == siacode.bypass):
-                self.httpapi.zones[zone - 1].bypassed = True
-                device = self.__get_device_by_id__(ZONE_BASE_ID + zone - 1)
-                device.native_state = device.native_state | 2
-                update = True
-            elif(action == siacode.unbypass):
-                self.httpapi.zones[zone - 1].bypassed = False
-                device = self.__get_device_by_id__(ZONE_BASE_ID + zone - 1)
-                device.native_state = device.native_state & 5
-                update = True
-            elif(action == siacode.group_bypass):
-                for z in self.httpapi.zones:
-                    if(z.enabled): z.bypassed = True
+        _LOGGER.debug("[__sia_processing_task] Receiving action:%s, partition:%d, zone:%d and  user:%d",str(action), partition, zone, user)
+        device = self.__get_device_by_id__(COMM_BASE_ID)
+        device.uptime = time.time()                             # 25/05/30 Ahora se actualiza con cualquier mensaje no solo keep alive
+        if(action == siacode.bypass):
+            self.httpapi.zones[zone - 1].bypassed = True
+            device = self.__get_device_by_id__(ZONE_BASE_ID + zone - 1)
+            device.native_state = device.native_state | 2
+            update = True
+        elif(action == siacode.unbypass):
+            self.httpapi.zones[zone - 1].bypassed = False 
+            device = self.__get_device_by_id__(ZONE_BASE_ID + zone - 1)
+            device.native_state = device.native_state & 5
+            update = True
+        elif(action == siacode.group_bypass):
+            for z in self.httpapi.zones:
+                if(z.enabled): z.bypassed = True
+            for d in self.devices:
+                if d.device_type == EntityType.ZONE:
+                    d.native_state = d.native_state | 4
+            update = True
+        elif(action == siacode.group_unbypass):
+            for z in self.httpapi.zones:
+                if(z.enabled): z.bypassed = False
+            for d in self.devices:
+                if d.device_type == EntityType.ZONE:
+                    d.native_state = d.native_state & 3
+            update = True
+        elif(action == siacode.present_arm or action == siacode.arm or action == siacode.keyboard_arm):
+            self.httpapi.partitions[partition - 1].armed = True
+            device = self.__get_device_by_id__(PARTITION_BASE_ID + partition - 1)
+            f = False
+            for z in self.httpapi.zones: 
+                if(z.enabled): f = f or z.bypassed
+            device.native_state = "home" if f else "away"
+            if(not f):
                 for d in self.devices:
                     if d.device_type == EntityType.ZONE:
-                        d.native_state = d.native_state | 4
-                update = True
-            elif(action == siacode.group_unbypass):
-                for z in self.httpapi.zones:
-                    if(z.enabled): z.bypassed = False
-                for d in self.devices:
-                    if d.device_type == EntityType.ZONE:
-                        d.native_state = d.native_state & 3
-                update = True
-            elif(action == siacode.present_arm or action == siacode.arm or action == siacode.keyboard_arm):
-                self.httpapi.partitions[partition - 1].armed = True
-                device = self.__get_device_by_id__(PARTITION_BASE_ID + partition - 1)
-                f = False
-                for z in self.httpapi.zones: 
-                    if(z.enabled): f = f or z.bypassed
-                device.native_state = "home" if f else "away"
-                if(not f):
-                    for d in self.devices:
-                        if d.device_type == EntityType.ZONE:
-                            d.native_state = (d.native_state | 4) & 5
-                update = True
-            elif(action == siacode.present_disarm or action == siacode.disarm or action == siacode.keyboard_disarm or action == siacode.alarm_disarm):
-                self.httpapi.partitions[partition - 1].armed = False
-                device = self.__get_device_by_id__(PARTITION_BASE_ID + partition - 1)
-                device.native_state = "disarmed"
-                for d in self.devices:
-                    if d.device_type == EntityType.ZONE:
-                        d.native_state = d.native_state & 3
-                update = True
-            elif(action == siacode.triggerzone):
-                self.httpapi.zones[zone - 1].alarmed = True
-                device = self.__get_device_by_id__(ZONE_BASE_ID + zone - 1)
-                device.alarmed = True
-                update = True
-            elif(action == siacode.restorezone):
-                self.httpapi.zones[zone - 1].alarmed = False
-                device = self.__get_device_by_id__(ZONE_BASE_ID + zone - 1)
-                device.alarmed = False
-                update = True
-            elif(action == siacode.trigger):
-                self.httpapi.partitions[partition - 1].alarmed = True
-                device = self.__get_device_by_id__(PARTITION_BASE_ID + partition - 1)
-                device.alarmed = True
-                update = True
-            elif(action == siacode.restore):
-                self.httpapi.partitions[partition - 1].alarmed = False
-                device = self.__get_device_by_id__(PARTITION_BASE_ID + partition - 1)
-                device.alarmed = False
-                update = True
-            else:
-                _LOGGER.warning("siacode " + str(action) + " no se esta procesando") # Se trata de un codigo que no se procesa
+                        d.native_state = (d.native_state | 4) & 5
+            update = True
+        elif(action == siacode.present_disarm or action == siacode.disarm or action == siacode.keyboard_disarm or action == siacode.alarm_disarm):
+            self.httpapi.partitions[partition - 1].armed = False
+            device = self.__get_device_by_id__(PARTITION_BASE_ID + partition - 1)
+            device.native_state = "disarmed"
+            for d in self.devices:
+                if d.device_type == EntityType.ZONE:
+                    d.native_state = d.native_state & 3
+            update = True
+        elif(action == siacode.triggerzone):
+            self.httpapi.zones[zone - 1].alarmed = True
+            device = self.__get_device_by_id__(ZONE_BASE_ID + zone - 1)
+            device.alarmed = True
+            update = True
+        elif(action == siacode.restorezone):
+            self.httpapi.zones[zone - 1].alarmed = False
+            device = self.__get_device_by_id__(ZONE_BASE_ID + zone - 1)
+            device.alarmed = False
+            update = True
+        elif(action == siacode.trigger):
+            self.httpapi.partitions[partition - 1].alarmed = True
+            device = self.__get_device_by_id__(PARTITION_BASE_ID + partition - 1)
+            device.alarmed = True
+            update = True
+        elif(action == siacode.restore):
+            self.httpapi.partitions[partition - 1].alarmed = False
+            device = self.__get_device_by_id__(PARTITION_BASE_ID + partition - 1)
+            device.alarmed = False
+            update = True
+        elif(action != siacode.keepalive):
+            _LOGGER.warning("siacode " + str(action) + " no se esta procesando") # Se trata de un codigo que no se procesa
         if(update):
             self.__coordinator_update_callback(self.get_devices())
 

@@ -46,7 +46,7 @@ class PartitionSensor(CoordinatorEntity, BinarySensorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
-        #self.device = self.coordinator.get_device_by_id(self.device.device_type, self.device_id)
+        self.device = self.coordinator.get_device_by_id(self.device.device_type, self.device_id)
         #_LOGGER.debug("[_handle_coordinator_update] Entity is now %s", str(self.device))
         #self.async_write_ha_state()
         self.schedule_update_ha_state()

@@ -53,5 +53,6 @@ Esta integracion ha sido probada con un panel PC-732-G con comunicador 500G
 
 
 ## Contribución
+- Muchas gracias a [Guido117](https://github.com/Guido117) por su ayuda con la informacion sobre API Garnet
 - Son bienvenidas las solicitudes de nuevas funcionalidades y los reportes de bugs! Abrir un [issue en GitHub](https://github.com/claudio-pires/garnet-home-assistant/issues/new/choose).
 - Bienvenidos tambien quienes deseen colaborar en el mantenimiento y agregado de nuevas funcionalidades

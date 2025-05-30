@@ -1,11 +1,11 @@
-"""Interfaces with the Example api sensors."""
+"""Platform tipo Switch, Sirena."""
 
 import logging
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceInfo 
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -29,7 +29,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 
 
 class HowlerSwitch(CoordinatorEntity, SwitchEntity):
-    """Implementation of a partition sensor alarmed / no alarmed."""
+    """Implementacion del control de sirena"""
 
     def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: PanelEntity) -> None:
         """Initialise sensor."""

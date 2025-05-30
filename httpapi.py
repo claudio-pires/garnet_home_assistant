@@ -11,10 +11,21 @@ import http.client
 import json
 import time
 
-from .const import GARNETAPIURL
+from .const import GARNETAPIURL, TOKEN_TIME_SPAN
 from .httpdata import GarnetHTTPUser, GarnetPanelInfo, Zone,Partition
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class SessionData:
+    """Datos de la session"""
+    token: str = None
+    creation: time = None
+
+    def __init__(self, token: str = None, creation: time = 0) -> None:
+        self.token = token
+        self.creation = creation
+
 
 class HTTP_API:
 
@@ -35,10 +46,11 @@ class HTTP_API:
         """Initialise."""
         self.user = GarnetHTTPUser(email=email, password=pwd)
         self.panelid = panelid
-        self.session_token = ""             # Token de session
+        self.session_token = SessionData()             # Token de session
         self.zones = [Zone(id = x + 1) for x in range(32)]
         self.partitions = [Partition(id = x + 1) for x in range(4)]
         self.seq = 1
+
 
     def connect(self):
         """Se conecta a la api y obtiene la informacion de la cuenta y panel
@@ -46,7 +58,6 @@ class HTTP_API:
         try:
             self.api = http.client.HTTPSConnection(GARNETAPIURL)
 
-            self.__login()                  # Necesario para levantar la configuracion inicial
             self.__collect_system_info()    # Necesario para levantar la configuracion restante
 
             retries = 5
@@ -65,8 +76,14 @@ class HTTP_API:
             raise err
 
 
+    def __token(self) -> str:
+        if (time.time() - self.session_token.creation) > TOKEN_TIME_SPAN:
+            self.__login()            #TODO catchear excepcion y plan de recovery
+        return self.session_token.token
+
+
     def __login(self) -> None:
-        """Obtiene token de sesion y configuraciones iniciales."""
+        """Obtiene token de sesion."""
         body = {}
         body["email"] = self.user.email
         body["password"] = self.user.password
@@ -79,19 +96,9 @@ class HTTP_API:
             _LOGGER.exception(err)
             raise ExceptionCallingGarnetAPI(err)
         if("success" in response and response["success"]):
-            _LOGGER.info("Successful login to GARTNET http")
-            self.session_token = response["accessToken"]
-
-            if self.user.name is None:
-                self.user.name = f"{response["userData"]["nombre"]} {response["userData"]["apellido"]}" # Obtiene el nombre real del usuario registrado en la Web
-
-            if(self.system is None):
-                for s in response["userData"]["sistemas"]:
-                    if s["id"] == self.panelid:
-                        self.system = GarnetPanelInfo( id = s["id"], guid = s["_id"], name = s["nombre"])
-                        break
-            if(self.system is None):
-                raise SystemDoesNotExistException("El sistema con id " + self.panelid + " no se encuentra registrado en Garnet Control")
+            _LOGGER.info("Successful login to GARTNET http")            
+            self.session_token.token = response["accessToken"]
+            self.session_token.creation = time.time()
         else:
             if("message" in response):
                 if((response["message"] == "No se recibió respuesta del sistema en el tiempo máximo esperado") or (response["message"] == "Ya hay un comando en progreso")):
@@ -99,7 +106,7 @@ class HTTP_API:
                 else:                
                     raise ExceptionCallingGarnetAPI(response["message"])
             else:
-                raise ExceptionCallingGarnetAPI("Invalid JSON " + str(response))
+                raise ExceptionCallingGarnetAPI(f"Invalid JSON {str(response)}")
 
 
     def __collect_system_info(self) -> None:
@@ -107,30 +114,37 @@ class HTTP_API:
 
         response = {}
         try:
-            self.api.request("GET", "/users_api/v1/systems/" + self.system.id , '', { 'x-access-token': self.session_token })
+            self.api.request("GET", "/users_api/v1/systems/" + self.panelid , '', { 'x-access-token': self.__token() })
             response = json.loads(self.api.getresponse().read().decode("utf-8"))
         except Exception as err:
             _LOGGER.exception(err)
             raise ExceptionCallingGarnetAPI(err)
 
         if("success" in response and response["success"]):
-
-            # Update user data
-            self.user.arm_permision = response["message"]["sistema"]["userPermissions"]["atributos"]["puedeArmar"]
-            self.user.disarm_permision = response["message"]["sistema"]["userPermissions"]["atributos"]["puedeDesarmar"]
-            self.user.disable_zone_permision = response["message"]["sistema"]["userPermissions"]["atributos"]["puedeInhibirZonas"]
-            self.user.horn_permision = response["message"]["sistema"]["userPermissions"]["atributos"]["puedeInteractuarConSirena"]
-            # Update system data
-            self.system.model = response["message"]["sistema"]["programation"]["data"]["alarmPanel"]["model"]                                                                                 
-            self.system.version = response["message"]["sistema"]["programation"]["data"]["alarmPanel"]["version"]                                                                                 
-            self.system.modelName = response["message"]["sistema"]["programation"]["data"]["alarmPanel"]["modelName"]                                                                                 
-            self.system.versionName = response["message"]["sistema"]["programation"]["data"]["alarmPanel"]["versionName"]
+            if self.user.name is None:
+                for user in response["message"]["sistema"]["users"]:
+                    if user["email"].lower() == self.user.email.lower():
+                        self.user.name = f"{user["nombre"]} {user["apellido"]}"             # Obtiene el nombre real del usuario registrado en la Web
+                        self.user.arm_permision = user["atributos"]["puedeArmar"]
+                        self.user.disarm_permision = user["atributos"]["puedeDesarmar"]
+                        self.user.disable_zone_permision = user["atributos"]["puedeInhibirZonas"]
+                        self.user.horn_permision = user["atributos"]["puedeInteractuarConSirena"]
+                        break
+            if(self.system is None):
+                if response["message"]["sistema"]["id"] == self.panelid:
+                    self.system = GarnetPanelInfo( id = response["message"]["sistema"]["id"], guid = response["message"]["sistema"]["id"], name = response["message"]["sistema"]["nombre"])
+                    self.system.model = response["message"]["sistema"]["programation"]["data"]["alarmPanel"]["model"]                                                                                 
+                    self.system.version = response["message"]["sistema"]["programation"]["data"]["alarmPanel"]["version"]                                                                                 
+                    self.system.modelName = response["message"]["sistema"]["programation"]["data"]["alarmPanel"]["modelName"]                                                                                 
+                    self.system.versionName = response["message"]["sistema"]["programation"]["data"]["alarmPanel"]["versionName"]
+                else:
+                    raise SystemDoesNotExistException(f"El sistema con id {self.panelid} no se encuentra registrado en Garnet Control")
 
             for zone in response["message"]["sistema"]["programation"]["data"]["zones"]:
-                self.zones[zone["number"] - 1].name = zone["name"]
+                self.zones[zone["number"] - 1].name = zone["name"] if ("name" in zone) else ""
                 self.zones[zone["number"] - 1].enabled = zone["enabled"]
                 self.zones[zone["number"] - 1].interior = zone["isPresentZone"]
-                self.zones[zone["number"] - 1].icon = zone["icon"]
+                self.zones[zone["number"] - 1].icon = zone["icon"] if ("icon" in zone) else "0"
 
             for partition in response["message"]["sistema"]["programation"]["data"]["partitions"]:
                 self.partitions[partition["number"] - 1].name = partition["name"]
@@ -140,14 +154,10 @@ class HTTP_API:
             if("message" in response):
                 if((response["message"] == "No se recibió respuesta del sistema en el tiempo máximo esperado") or (response["message"] == "Ya hay un comando en progreso")):
                     raise UnresponsiveGarnetAPI(response["message"])
-                elif((response["message"] == "Failed to authenticate token.") or (response["message"] == "No token provided.")):
-                    _LOGGER.warning(response["message"] + " //  Se intenta nuevamente el login")
-                    self.__login()
-                    return self.__collect_system_info()
-                else:                
+                else:
                     raise ExceptionCallingGarnetAPI(response["message"])
             else:
-                raise ExceptionCallingGarnetAPI("Invalid JSON " + str(response))
+                raise ExceptionCallingGarnetAPI(f"Invalid JSON {str(response)}")
 
 
     def update_status(self) -> None:
@@ -158,7 +168,7 @@ class HTTP_API:
 
         response = {}
         try:
-            self.api.request("POST", "/users_api/v1/systems/" + self.system.id + "/commands/state", json.dumps(body), { 'x-access-token': self.session_token, 'Content-Type': 'application/json' })
+            self.api.request("POST", "/users_api/v1/systems/" + self.panelid + "/commands/state", json.dumps(body), { 'x-access-token': self.__token(), 'Content-Type': 'application/json' })
             response = json.loads(self.api.getresponse().read().decode("utf-8"))
         except Exception as err:
             _LOGGER.exception(err)

@@ -3,9 +3,9 @@ import json
 import time
 import logging
 
-from .enums import arm_modes, zonestatus, emergencytype, siacode
+
 from .data import Zone, Partition, GarnetPanelInfo, User
-from .siaserver import MessageServer
+from .siaserver import MessageServer, siacode
 from .const import *
 from collections.abc import Callable
 
@@ -17,7 +17,7 @@ class GarnetAPI:
     """Implementacion de API WEB Garnet."""
     #TODO: cada comando devuelve el estado???? parsearlo
 
-    messageserver = None
+    messageserver: MessageServer = None
 
     def __init__(self, email: str, password: str, client: str) -> None:
         """Inicializacion de la API."""
@@ -246,7 +246,7 @@ class GarnetAPI:
         _LOGGER.debug(txt)
 
 
-    def arm_system(self, partition: int, mode: arm_modes) -> None:
+    def arm_system(self, partition: int, mode: str) -> None:
         """Armado de particion."""
 
         if(not self.user.arm_permision):
@@ -261,7 +261,7 @@ class GarnetAPI:
 
         response = {}
         try:
-            command = ("delayed" if mode == arm_modes.home else "away")
+            command = ("delayed" if mode == "home" else "away")
             self.api.request("POST", "/users_api/v1/systems/" + self.system.id + "/commands/arm/" + command, json.dumps(body), { 'x-access-token': self.session_token, 'Content-Type': 'application/json' })
             response = json.loads(self.api.getresponse().read().decode("utf-8"))
         except Exception as err:

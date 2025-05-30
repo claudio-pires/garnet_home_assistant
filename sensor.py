@@ -1,4 +1,4 @@
-"""Interfaces with the Example api sensors."""
+"""Plataformas de tipo sensors."""
 
 import logging
 

@@ -1,5 +1,3 @@
-from .enums import arm_modes, zonestatus, emergencytype
-
 class GarnetPanelInfo():
     """Encapsula datos del panel."""
 
@@ -36,9 +34,7 @@ class Zone():
     """Encapsula datos de la zona."""
 
     def __init__(self, id: int, name: str = "", enabled: bool = False, interior: bool = False, icon: int = 0, 
-                 open: zonestatus = zonestatus.unknown, 
-                 alarmed: zonestatus = zonestatus.unknown, 
-                 bypassed: zonestatus = zonestatus.unknown) -> None:
+                 open: bool = False, alarmed: bool = False, bypassed: bool = False) -> None:
         self.id = id
         self.name = name
         self.enabled = enabled
