@@ -2,15 +2,15 @@
 
 import logging
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity 
+from homeassistant.config_entries import ConfigEntry 
+from homeassistant.core import HomeAssistant, callback 
+from homeassistant.helpers.device_registry import DeviceInfo 
+from homeassistant.helpers.entity_platform import AddEntitiesCallback 
+from homeassistant.helpers.update_coordinator import CoordinatorEntity 
 
 from .const import DOMAIN
-from .api import PanelEntity, EntityType
+from .httpapi import DeviceType, GarnetEntity
 from .coordinator import GarnetPanelIntegrationCoordinator
 from enum import StrEnum
 
@@ -24,19 +24,19 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     async_add_entities([
         ZoneSensor(coordinator, device)
         for device in coordinator.data.devices
-        if device.device_type == EntityType.ZONE
+        if device.device_type == DeviceType.ZONE
     ])
     async_add_entities([
         TextSensor(coordinator, device)
         for device in coordinator.data.devices
-        if device.device_type == EntityType.TEXT_SENSOR
+        if device.device_type == DeviceType.TEXT_SENSOR
     ])
         
     
 class ZoneSensor(CoordinatorEntity, SensorEntity):
     """Implementation of a zone monitoring sensor."""
 
-    def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: PanelEntity) -> None:
+    def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: GarnetEntity) -> None:
         """Initialise sensor."""
         super().__init__(coordinator)
         self.device = device
@@ -113,7 +113,7 @@ class ZoneSensor(CoordinatorEntity, SensorEntity):
 class TextSensor(CoordinatorEntity, SensorEntity):
     """Implementation of a zone monitoring sensor."""
 
-    def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: PanelEntity) -> None:
+    def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: GarnetEntity) -> None:
         """Initialise sensor."""
         super().__init__(coordinator)
         self.device = device

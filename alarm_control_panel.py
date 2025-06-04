@@ -2,18 +2,17 @@
 
 import logging
 
-from homeassistant.components.alarm_control_panel import AlarmControlPanelEntity
-from homeassistant.components.alarm_control_panel.const import AlarmControlPanelState, AlarmControlPanelEntityFeature, CodeFormat
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.alarm_control_panel import AlarmControlPanelEntity 
+from homeassistant.components.alarm_control_panel.const import AlarmControlPanelState, AlarmControlPanelEntityFeature, CodeFormat 
+from homeassistant.core import HomeAssistant, callback 
+from homeassistant.helpers.device_registry import DeviceInfo 
+from homeassistant.helpers.entity_platform import AddEntitiesCallback 
+from homeassistant.helpers.update_coordinator import CoordinatorEntity 
+from homeassistant.config_entries import ConfigEntry 
 
 from .const import DOMAIN
 from .coordinator import GarnetPanelIntegrationCoordinator
-from .api import PanelEntity, EntityType
-
+from .httpapi import DeviceType, GarnetEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,14 +24,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     async_add_entities([
         GarnetAlarmPanel(coordinator, device)
         for device in coordinator.data.devices
-        if device.device_type == EntityType.PARTITION
+        if device.device_type == DeviceType.PARTITION
     ])
 
 
 class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
     """Implementation of the Garnet Alarm Panel."""
 
-    def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: PanelEntity) -> None:
+    def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: GarnetEntity) -> None:
         """Initialise sensor."""
         super().__init__(coordinator)
         self.supported_features = AlarmControlPanelEntityFeature.ARM_AWAY | AlarmControlPanelEntityFeature.ARM_HOME 
@@ -45,7 +44,6 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
         #_LOGGER.debug("[_handle_coordinator_update] Entity is now %s", str(self.device))
-        #self.async_write_ha_state()
         self.schedule_update_ha_state()
 
     
@@ -59,13 +57,6 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
     def name(self) -> str:
         """Return the name of the sensor."""
         return self.device.name
-
-
- #   @property
- #   def is_on(self) -> bool | None:
-  #      """Return if the binary sensor is on."""
-  #      # This needs to enumerate to true or false
-  #      return True
 
 
     @property
@@ -106,7 +97,7 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
     def changed_by(self) -> str | None:
         """Last change triggered by."""
         _LOGGER.debug("Ejecutando changed_by")
-        return "TODO: poner el nombre"
+        return "#TODO: agregar la logica"
     
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
@@ -121,12 +112,12 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
         await self.coordinator.async_request_refresh()
 
 
-
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         """Send arm away command."""
         await self.coordinator.async_force_device_status(self.device_id, "away")
         await self.coordinator.async_request_refresh()
         
+
     @property
     def icon(self):
         if(self._icon):

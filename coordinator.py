@@ -4,12 +4,13 @@ from dataclasses import dataclass
 
 import logging
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import DOMAIN, HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.config_entries import ConfigEntry 
+from homeassistant.core import DOMAIN, HomeAssistant 
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed 
+from homeassistant.helpers.device_registry import DeviceInfo 
 
-from .api import APIAuthError, PanelEntity, EntityType, GarnetAPI
+from .api import APIAuthError, GarnetAPI
+from .httpapi import DeviceType, GarnetEntity
 from .const import CONF_ACCOUNT, CONF_GARNETUSER, CONF_GARNETPASS, CONF_SYSTEM
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class APIData:
     """Class to hold api data."""
 
     controller_name: str
-    devices: list[PanelEntity]
+    devices: list[GarnetEntity]
   
 
 class GarnetPanelIntegrationCoordinator(DataUpdateCoordinator):
@@ -53,7 +54,7 @@ class GarnetPanelIntegrationCoordinator(DataUpdateCoordinator):
                               sw_version = panel.versionName, identifiers = {(DOMAIN, f"{DOMAIN} ({self.uniqueid})")})
         
 
-    def devices_update_callback(self, devs: list[PanelEntity]):
+    def devices_update_callback(self, devs: list[GarnetEntity]):
         """Receive callback from api with device update."""
         _LOGGER.debug("[devices_update_callback] Updating devices status")
         self.async_set_updated_data(APIData(self.api.controller_name, devs))
@@ -81,7 +82,7 @@ class GarnetPanelIntegrationCoordinator(DataUpdateCoordinator):
         return APIData(self.api.controller_name, devices)
 
 
-    def get_device_by_id(self, device_type: EntityType, device_id: int) -> PanelEntity | None:
+    def get_device_by_id(self, device_type: DeviceType, device_id: int) -> GarnetEntity | None:
         """Return device by device id."""
         # Called by the binary sensors and sensors to get their updated data from self.data
         try:

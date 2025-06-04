@@ -26,10 +26,10 @@ class GarnetHTTPUser():
         self.email = email
         self.password = password
         self.name = None
-        self.arm_permision = False
-        self.disarm_permision = False
-        self.disable_zone_permision = False
-        self.horn_permision = False
+        self.arm_permision = None
+        self.disarm_permision = None
+        self.disable_zone_permision = None
+        self.horn_permision = None
 
 
     def __str__(self):

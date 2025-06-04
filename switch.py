@@ -2,15 +2,15 @@
 
 import logging
 
-from homeassistant.components.switch import SwitchEntity
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.components.switch import SwitchEntity 
+from homeassistant.config_entries import ConfigEntry 
+from homeassistant.core import HomeAssistant, callback 
 from homeassistant.helpers.device_registry import DeviceInfo 
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.entity_platform import AddEntitiesCallback 
+from homeassistant.helpers.update_coordinator import CoordinatorEntity 
 
 
-from .api import PanelEntity, EntityType
+from .httpapi import DeviceType, GarnetEntity
 from .const import DOMAIN
 from .coordinator import GarnetPanelIntegrationCoordinator
 
@@ -24,14 +24,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     async_add_entities([
         HowlerSwitch(coordinator, device)
         for device in coordinator.data.devices
-        if device.device_type == EntityType.HOWLER
+        if device.device_type == DeviceType.HOWLER
     ])
 
 
 class HowlerSwitch(CoordinatorEntity, SwitchEntity):
     """Implementacion del control de sirena"""
 
-    def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: PanelEntity) -> None:
+    def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: GarnetEntity) -> None:
         """Initialise sensor."""
         super().__init__(coordinator)
         self.device = device
@@ -42,7 +42,6 @@ class HowlerSwitch(CoordinatorEntity, SwitchEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
-        #_LOGGER.debug("[_handle_coordinator_update] Entity is now %s", str(self.device))
         self.schedule_update_ha_state()    
 
 
@@ -77,7 +76,7 @@ class HowlerSwitch(CoordinatorEntity, SwitchEntity):
 
 
     async def async_turn_off(self, **kwargs):
-        """Turn the entity on."""
+        """Turn the entity off."""
         await self.coordinator.async_force_device_status(self.device_id, "off")
         await self.coordinator.async_request_refresh()
 

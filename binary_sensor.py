@@ -2,17 +2,18 @@
 
 import logging
 
-from homeassistant.components.binary_sensor import (
+from homeassistant.components.binary_sensor import ( 
     BinarySensorDeviceClass,
     BinarySensorEntity,
-)
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+) 
+from homeassistant.config_entries import ConfigEntry 
+from homeassistant.core import HomeAssistant, callback 
+from homeassistant.helpers.device_registry import DeviceInfo 
+from homeassistant.helpers.entity_platform import AddEntitiesCallback 
+from homeassistant.helpers.update_coordinator import CoordinatorEntity 
 
-from .api import PanelEntity, EntityType
+
+from .httpapi import DeviceType, GarnetEntity
 from .const import DOMAIN
 from .coordinator import GarnetPanelIntegrationCoordinator
 
@@ -28,14 +29,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     async_add_entities([
         PartitionSensor(coordinator, device)
         for device in coordinator.data.devices
-        if device.device_type == EntityType.PARTITION
+        if device.device_type == DeviceType.PARTITION
     ])
 
 
 class PartitionSensor(CoordinatorEntity, BinarySensorEntity):
     """Implementation of a partition sensor alarmed / no alarmed."""
 
-    def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: PanelEntity) -> None:
+    def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: GarnetEntity) -> None:
         """Initialise sensor."""
         super().__init__(coordinator)
         self.device = device

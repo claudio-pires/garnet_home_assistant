@@ -21,7 +21,8 @@ from .coordinator import GarnetPanelIntegrationCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 # Platforms required for the integration
-PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR, Platform.ALARM_CONTROL_PANEL, Platform.SWITCH, Platform.BUTTON]
+#PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR, Platform.ALARM_CONTROL_PANEL, Platform.SWITCH, Platform.BUTTON]#TODO Habilitar controles extra cuando se sepa correctamente el protocolo
+PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR, Platform.ALARM_CONTROL_PANEL]
 
 
 @dataclass
