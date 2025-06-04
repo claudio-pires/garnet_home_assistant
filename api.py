@@ -197,8 +197,6 @@ class GarnetAPI:
                 device.native_state = new_state
             except Exception as err:
                 _LOGGER.exception(err)
-        if device.device_type == DeviceType.BUTTON:
-            _LOGGER.debug("[async_force_device_status] API receives notification for button with ID %i activation", device_id)
         self.__coordinator_update_callback(self.httpapi.devices)
 
 
@@ -226,11 +224,17 @@ class GarnetAPI:
                     _LOGGER.exception(err)
                     device.native_state = device.native_state
         if device.device_type == DeviceType.HOWLER:
-            _LOGGER.debug("[async_force_device_status] API receives notification for howler with ID %i changed from %s to %s ", device_id, "on" if device.native_state else "off", "on" if new_state else "off")
+            _LOGGER.debug("[force_device_status] API receives notification for howler with ID %i changed from %s to %s ", device_id, "on" if device.native_state else "off", "on" if new_state else "off")
             device.native_state = new_state
         if device.device_type == DeviceType.BUTTON:
-            _LOGGER.debug("[async_force_device_status] API receives notification for button with ID %i activation", device_id)
-        #self.__coordinator_update_callback
+            _LOGGER.debug("[force_device_status] API receives notification for button %s with ID %i activation", device.name, device_id)
+            p = self.httpapi.__get_device_by_id__(PARTITION_BASE_ID + 1)
+            try:
+                result = self.httpapi.report_emergency(device.name, p.device_id, p.name)
+            except Exception as err:
+                _LOGGER.exception(err)
+        self.__coordinator_update_callback(self.httpapi.devices)
+
 
 
     def get_device_unique_id(self, device_id: str, device_type: DeviceType) -> str:

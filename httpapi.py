@@ -380,6 +380,41 @@ class HTTP_API:
                 if((response["message"] == "Failed to authenticate token.") or (response["message"] == "No token provided.")):
                     _LOGGER.warning(response["message"])
                     raise Exception(response["message"])        # Esto no deberia ocurrir porque se supone que el tiempo de vida del token esta controlado
+                elif((response["message"] == "No se recibió respuesta del sistema en el tiempo máximo, json.dumps(body),  esperado") or (response["message"] == "Ya hay un comando en progreso")):
+                    raise UnresponsiveGarnetAPI(response["message"])
+                else:                
+                    raise InvokeGarnetAPIException(response["message"])
+            else:
+                raise InvokeGarnetAPIException("Invalid JSON " + str(response))
+
+
+    def report_emergency(self, type: str, partition_id: int, partition_name: str) -> None:
+        """Genera una emergencia."""
+        body = {}
+        body["partition"] = {}
+        body["partition"]["name"] = partition_name
+        body["partition"]["number"] = partition_id
+        body["partition"]["enabled"] = True
+        body["partition"]["editedName"] = partition_name
+        body["emergencyType"] = 1 if type == "Medico" else (3 if type == "Incendio" else (4 if type == "Panico" else 2))
+        body["timeout"] = GARNETAPITIMEOUT
+
+        response = {}
+        try:
+            conn = http.client.HTTPSConnection(GARNETAPIURL)
+            conn.request("POST", f"/users_api/v1/systems/{self.system.id}/commands/emergency", json.dumps(body), { 'x-access-token': self.__token(), 'Content-Type': 'application/json' })
+            response = json.loads(conn.getresponse().read().decode("utf-8"))
+            conn.close()
+        except Exception as err:
+            _LOGGER.exception(err)
+            raise InvokeGarnetAPIException(err)
+        if("success" in response and response["success"]):
+            _LOGGER.info(response["message"]["response"])
+        else: 
+            if("message" in response):
+                if((response["message"] == "Failed to authenticate token.") or (response["message"] == "No token provided.")):
+                    _LOGGER.warning(response["message"])
+                    raise Exception(response["message"])        # Esto no deberia ocurrir porque se supone que el tiempo de vida del token esta controlado
                 elif((response["message"] == "No se recibió respuesta del sistema en el tiempo máximo esperado") or (response["message"] == "Ya hay un comando en progreso")):
                     raise UnresponsiveGarnetAPI(response["message"])
                 else:                
@@ -399,16 +434,6 @@ class HTTP_API:
         # Quitar BYPASS
         #https://web.garnetcontrol.app/users_api/v1/systems/<id_sistema>/commands/unbypass/<nro_zona>
         #respuesta: {"success":true,"message":{"response":"COMANDO ENVIADO CON EXITO","status":"10000F000000000000000000020000000000000"}}
-
-
-    def report_emergency(self, type: str) -> None:
-        """Genera una alarma."""
-        #TODO: Implementar
-        # medico ----> {"partition":{"name":"Partición principal","number":1,"enabled":true,"editedName":"Partición principal"},"emergencyType":1,"timeout":4500}
-        # ?????? ----> {"partition":{"name":"Partición principal","number":1,"enabled":true,"editedName":"Partición principal"},"emergencyType":2,"timeout":4500}
-        # incendio --> {"partition":{"name":"Partición principal","number":1,"enabled":true,"editedName":"Partición principal"},"emergencyType":3,"timeout":4500} 
-        # panico ----> {"partition":{"name":"Partición principal","number":1,"enabled":true,"editedName":"Partición principal"},"emergencyType":4,"timeout":4500}
-        # POST https://web.garnetcontrol.app/users_api/v1/systems/a10050008d96/commands/emergency
 
 
     def program_panic(self, time: time) -> None:

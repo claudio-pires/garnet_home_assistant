@@ -52,6 +52,16 @@ Esta integracion ha sido probada con un panel PC-732-G con comunicador 500G
 
 
 
+### Pendientes
+La trama de estado que devuelven los comandos en la API se interpretó en base a prueba y error. Intentaré conseguir documentación oficial para poder terminar algunas funciones. 
+- Actualmente soporto una única partición porque no conozco como interpreat estados de varias particiones. 
+- El estado incial luego de un reinicio es desconocido porque no se como interpretar el estado, se sicroniza luego de una operación de teclado, llavero o app móvil cualdo le llega el primer mensaje SIA.
+- El estado de imposible armar (existe alguna zona abierta) no es interpretado y por lo tanto es posible armar una partición con una zona abierta lo que hace automáticamente entrar en alarma.
+
+Aun no conozco el tiempo de validez del token, se asumen 10 minutos
+Pendiente implementear funciones para bypassear zonas, pánico demorado, obtener eventos varios (estado de baterías, energía, etc)
+
+
 ## Contribución
 - Muchas gracias a [Guido117](https://github.com/Guido117) por su ayuda con la informacion sobre API Garnet
 - Son bienvenidas las solicitudes de nuevas funcionalidades y los reportes de bugs! Abrir un [issue en GitHub](https://github.com/claudio-pires/garnet-home-assistant/issues/new/choose).
