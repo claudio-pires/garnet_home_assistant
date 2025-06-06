@@ -69,7 +69,7 @@ class Partition():
     """Encapsula datos de la particion."""
 
 
-    def __init__(self, id: int, name: str = "", armed: str = "Unknown", alarmed: bool = False, enabled: bool = False) -> None:
+    def __init__(self, id: int, name: str = "", armed: str = "unknown", alarmed: bool = False, enabled: bool = False) -> None:
         self.id = id
         self.name = name
         self.enabled = enabled

@@ -228,11 +228,17 @@ class GarnetAPI:
             device.native_state = new_state
         if device.device_type == DeviceType.BUTTON:
             _LOGGER.debug("[force_device_status] API receives notification for button %s with ID %i activation", device.name, device_id)
-            p = self.httpapi.__get_device_by_id__(PARTITION_BASE_ID + 1)
-            try:
-                result = self.httpapi.report_emergency(device.name, p.device_id, p.name)
-            except Exception as err:
-                _LOGGER.exception(err)
+            if(device_id == REFRESHBUTTON_BASE_ID):
+                try:
+                    self.httpapi.get_state()
+                except Exception as err:
+                    _LOGGER.exception(err)
+            else:
+                p = self.httpapi.__get_device_by_id__(PARTITION_BASE_ID + 1)
+                try:
+                    result = self.httpapi.report_emergency(device.name, p.device_id, p.name)
+                except Exception as err:
+                    _LOGGER.exception(err)
         self.__coordinator_update_callback(self.httpapi.devices)
 
 

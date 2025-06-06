@@ -34,7 +34,6 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
     def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: GarnetEntity) -> None:
         """Initialise sensor."""
         super().__init__(coordinator)
-        self.supported_features = AlarmControlPanelEntityFeature.ARM_AWAY | AlarmControlPanelEntityFeature.ARM_HOME 
         self.device = device
         self.device_id = device.device_id
         self._icon = device.icon
@@ -51,6 +50,12 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
     def device_info(self) -> DeviceInfo:
         """Return device information."""
         return self.coordinator.get_device_info()
+
+
+    @property
+    def supported_features(self) -> AlarmControlPanelEntityFeature:
+        """Return device information."""
+        return AlarmControlPanelEntityFeature.ARM_AWAY | AlarmControlPanelEntityFeature.ARM_HOME
 
 
     @property
@@ -76,11 +81,11 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
     @property
     def alarm_state(self) -> AlarmControlPanelState | None:
         """One of the alarm values listed in the states."""
-        if self.device.native_state == "disarmed":
-            return AlarmControlPanelState.DISARMED
+        if self.device.native_state == "away":
+            return AlarmControlPanelState.ARMED_AWAY
         elif self.device.native_state == "home":
             return AlarmControlPanelState.ARMED_HOME
-        return AlarmControlPanelState.ARMED_AWAY
+        return AlarmControlPanelState.DISARMED
 
 
     @property
@@ -96,7 +101,7 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
     @property
     def changed_by(self) -> str | None:
         """Last change triggered by."""
-        _LOGGER.debug("Ejecutando changed_by")
+        #_LOGGER.debug("Ejecutando changed_by")
         return "#TODO: agregar la logica"
     
 
@@ -108,12 +113,16 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
 
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         """Send arm home command."""
+        if self.device.native_state == "unknown":
+            return
         await self.coordinator.async_force_device_status(self.device_id, "home")
         await self.coordinator.async_request_refresh()
 
 
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         """Send arm away command."""
+        if self.device.native_state == "unknown":
+            return
         await self.coordinator.async_force_device_status(self.device_id, "away")
         await self.coordinator.async_request_refresh()
         

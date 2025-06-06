@@ -9,7 +9,7 @@ from enum import StrEnum
 from dataclasses import dataclass
 
 from .const import (GARNETAPIURL, TOKEN_TIME_SPAN, PARTITION_BASE_ID, ZONE_BASE_ID, HOWLER_BASE_ID, POLICEBUTTON_BASE_ID,
-                     DOCTORBUTTON_BASE_ID, FIREBUTTON_BASE_ID, TIMEDPANICBUTTON_BASE_ID, COMM_BASE_ID, GARNETAPITIMEOUT )
+                     DOCTORBUTTON_BASE_ID, FIREBUTTON_BASE_ID, TIMEDPANICBUTTON_BASE_ID, COMM_BASE_ID, GARNETAPITIMEOUT, REFRESHBUTTON_BASE_ID)
 
 from .httpdata import GarnetHTTPUser, GarnetPanelInfo, Zone,Partition
 
@@ -80,7 +80,7 @@ class HTTP_API:
             retries = 5
             while(retries > 0):             # En el proceso de obtener estado inicial es importante varios retries porque la WEB de Garnet es lenta
                 try:
-                    self.update_status(self.__get_state())  # Actualiza status
+                    self.get_state()        # Actualiza status
                     retries = 0
                 except UnresponsiveGarnetAPI as err: # Si la API no responde conviene esperar
                     time.sleep(3)
@@ -187,6 +187,8 @@ class HTTP_API:
                                                  name="Medico", alarmed=False, native_state="Unknown", uptime=0, icon="mdi:doctor"))
                 self.devices.append(GarnetEntity(device_id=TIMEDPANICBUTTON_BASE_ID, device_unique_id=f"{self.controller_name}_B_4",device_type=DeviceType.BUTTON, 
                                                  name="Panico demorado", alarmed=False, native_state="Unknown", uptime=0, icon="mdi:alarm"))
+                self.devices.append(GarnetEntity(device_id=REFRESHBUTTON_BASE_ID, device_unique_id=f"{self.controller_name}_B_8",device_type=DeviceType.BUTTON, 
+                                                 name="Refrescar estado", alarmed=False, native_state="Unknown", uptime=0, icon="mdi:refresh"))
                 self.devices.append(GarnetEntity(device_id=COMM_BASE_ID, device_unique_id=f"{self.controller_name}_X_1",device_type=DeviceType.TEXT_SENSOR, 
                                                  name="Comunicador", alarmed=False, native_state="Unknown", uptime=0, icon="mdi:wifi"))
 
@@ -200,38 +202,6 @@ class HTTP_API:
                 raise InvokeGarnetAPIException(f"Invalid JSON {str(response)}")
 
 
-    def __get_state(self) -> str:
-
-        """Chequeo de estado."""
-        body = {}
-        body["seq"] = self.__sequence()
-        body["timeout"] = GARNETAPITIMEOUT
-
-        response = {}
-        try:
-            conn = http.client.HTTPSConnection(GARNETAPIURL)
-            conn.request("POST", "/users_api/v1/systems/" + self.panelid + "/commands/state", json.dumps(body), { 'x-access-token': self.__token(), 'Content-Type': 'application/json' })
-            response = json.loads(conn.getresponse().read().decode("utf-8"))
-            conn.close()
-        except Exception as err:
-            _LOGGER.exception(err)
-            raise InvokeGarnetAPIException(err)
-
-        if("success" in response and response["success"]):
-            return response["message"]["status"]
-        else: 
-            if("message" in response):
-                if((response["message"] == "Failed to authenticate token.") or (response["message"] == "No token provided.")):
-                    _LOGGER.warning(response["message"])
-                    raise Exception(response["message"])        # Esto no deberia ocurrir porque se supone que el tiempo de vida del token esta controlado
-                elif((response["message"] == "No se recibió respuesta del sistema en el tiempo máximo esperado") or (response["message"] == "Ya hay un comando en progreso")):
-                    raise UnresponsiveGarnetAPI(response["message"])
-                else:                
-                    raise InvokeGarnetAPIException(response["message"])
-            else:
-                raise InvokeGarnetAPIException("Invalid JSON " + str(response))
-    
-
     def __get_device_by_id__(self, device_id: int) -> GarnetEntity | None:
         """Devuelve un dispositivo."""
         for device in self.devices:
@@ -240,8 +210,90 @@ class HTTP_API:
         return None
 
 
-    def update_status(self, status: str) -> None:
+    def __sequence(self, increment: int = 0) -> str:
+        """Devuelve numero de sequencia consecutivo y limitado en 255."""
+        # Despues de revisar la aplicacion me doy cuenta que el nro de secuencia se incrementa solo despues de enviar algunos comandos a la api
+        self.seq = self.seq + increment
+        if(self.seq == 256): self.seq = 0
+        if increment > 0:
+            return str(self.seq - 1).zfill(3)
+        return str(self.seq).zfill(3)
+
+
+    def __update_status(self, status: str) -> None:
+        """Parseo del estado del panel"""
+        # Nota: se obtiene de la funcion processStatus en js de la web de garnetcontrol
+
         _LOGGER.debug("Se recibe trama " + status)
+
+        registroProblemas1 = int(status[1:3], 16) # No usado
+        registroProblemas2 = int(status[3:5], 16) # No usado
+        _LOGGER.debug("registroProblemas1 = %d y registroProblemas2 = %d",  registroProblemas1, registroProblemas2)
+
+        estadoDeParticiones1 = int(status[5:7], 16)
+        estadoDeParticiones2 = int(status[35:37], 16)
+        demorasPanel = int(status[37:39], 16)
+        _LOGGER.debug("estadoDeParticiones1 = %d, estadoDeParticiones2 = %d y demorasPanel = %d",  estadoDeParticiones1, estadoDeParticiones2, demorasPanel)
+
+        partitionStatus = [ "", "", "", ""]
+        for i in range(0,4):
+            if (estadoDeParticiones1 & (2 ** (7 - i))):
+                partitionStatus[i] = "LISTO"
+            else:
+                partitionStatus[i] = "NO_LISTO"
+
+            if (estadoDeParticiones1 & (2 ** (3 - i))) or (demorasPanel & (2 ** (7 - i))):
+                partitionStatus[i] = "ARMADO"
+
+            if (estadoDeParticiones2 & (2 ** (3 - i)) and (partitionStatus[i] == "ARMADO")):
+                # DEMORADO
+                partitionStatus[i] = "DEMORADO"
+            elif (estadoDeParticiones2 & (2 ** (7 - i)) and (partitionStatus[i] == "ARMADO")):
+                # INSTANTANEO
+                partitionStatus[i] = "INSTANTANEO"
+
+            if  self.partition_mask & (2 ** i):
+                p = self.__get_device_by_id__(PARTITION_BASE_ID + i + 1)
+                if partitionStatus[i] == "DEMORADO":
+                    p.native_state = "home"
+                elif partitionStatus[i] == "INSTANTANEO":
+                    p.native_state = "away"
+                elif partitionStatus[i] == "LISTO":
+                    p.native_state = "disarmed"
+                else:
+                    p.native_state = "unknown"
+                _LOGGER.debug("Particion %d en estado %s (%s)",  i + 1, partitionStatus[i], p.native_state)
+            else:
+                _LOGGER.debug("Particion no configurada %d en estado %s",  i + 1, partitionStatus[i] )
+
+        zonasAbiertas = []
+        zonasAbiertas.append(int(status[9:11], 16))
+        zonasAbiertas.append(int(status[11:13], 16))
+        zonasAbiertas.append(int(status[13:15], 16))
+        zonasAbiertas.append(int(status[15:17], 16))
+        _LOGGER.debug("Estado de apertura de zonas (1 a 8)=%d, (9 a 16)=%d, (17 a 24)=%d y (25 a 32)=%d", zonasAbiertas[0], zonasAbiertas[1], zonasAbiertas[2], zonasAbiertas[3])
+
+        zonasEnAlarma = []
+        zonasEnAlarma.append(int(status[17:19], 16))
+        zonasEnAlarma.append(int(status[19:21], 16))
+        zonasEnAlarma.append(int(status[21:23], 16))
+        zonasEnAlarma.append(int(status[23:25], 16))
+        _LOGGER.debug("Estado de alarma de zonas (1 a 8)=%d, (9 a 16)=%d, (17 a 24)=%d y (25 a 32)=%d", zonasEnAlarma[0], zonasEnAlarma[1], zonasEnAlarma[2], zonasEnAlarma[3])
+
+        zonasInhibidas = []
+        zonasInhibidas.append(int(status[25:27], 16))
+        zonasInhibidas.append(int(status[27:29], 16))
+        zonasInhibidas.append(int(status[29:31], 16))
+        zonasInhibidas.append(int(status[31:33], 16))
+        _LOGGER.debug("Estado de inhibicion de zonas (1 a 8)=%d, (9 a 1update_status(6)=%d, (17 a 24)=%d y (25 a 32)=%d", zonasInhibidas[0], zonasInhibidas[1], zonasInhibidas[2], zonasInhibidas[3])
+
+        estadoDeSalidas = int(status[7:9], 16)
+        _LOGGER.debug("Estado de salidas cableadas es %d ", estadoDeSalidas)
+
+        estadoDeSalidasInalambricas = int(status[33:35], 16)
+        _LOGGER.debug("Estado de salidas inalambricas es %d ", estadoDeSalidasInalambricas)
+
+
         _LOGGER.debug("Mascara de estado de zona: 0x%s", status[9:11])
         _LOGGER.debug("Mascara de estado de alarma: 0x%s", status[11:19])
         _LOGGER.debug("Mascara de estado de inhibicion: 0x%s", status[19:27])
@@ -274,8 +326,39 @@ class HTTP_API:
             if p.device_type == DeviceType.PARTITION:
                 #TODO: Esto esta maaaaaaaaal hay que sacar la informacion de forma correcta de la trama para todas las particiones
                 p.alarmed = (int(status[11:19], 16) & 255) != 0 
-                p.armed = "disarmed" if((m & 0xF000) == 0xF000) else ("away" if(((m & 0x7800) == 0x7800) and ((int(status[19:27], 16) & 255) > 0)) else ("home" if((m & 0x7800) == 0x7800) else ("block" if((m & 0x4000) == 0x4000) else "unknown")))
  
+
+    def get_state(self) -> None:
+
+        """Chequeo de estado."""
+        body = {}
+        body["seq"] = self.__sequence()
+        body["timeout"] = GARNETAPITIMEOUT
+
+        response = {}
+        try:
+            conn = http.client.HTTPSConnection(GARNETAPIURL)
+            conn.request("POST", "/users_api/v1/systems/" + self.panelid + "/commands/state", json.dumps(body), { 'x-access-token': self.__token(), 'Content-Type': 'application/json' })
+            response = json.loads(conn.getresponse().read().decode("utf-8"))
+            conn.close()
+        except Exception as err:
+            _LOGGER.exception(err)
+            raise InvokeGarnetAPIException(err)
+
+        if("success" in response and response["success"]):
+            self.__update_status(response["message"]["status"])
+        else: 
+            if("message" in response):
+                if((response["message"] == "Failed to authenticate token.") or (response["message"] == "No token provided.")):
+                    _LOGGER.warning(response["message"])
+                    raise Exception(response["message"])        # Esto no deberia ocurrir porque se supone que el tiempo de vida del token esta controlado
+                elif((response["message"] == "No se recibió respuesta del sistema en el tiempo máximo esperado") or (response["message"] == "Ya hay un comando en progreso")):
+                    raise UnresponsiveGarnetAPI(response["message"])
+                else:                
+                    raise InvokeGarnetAPIException(response["message"])
+            else:
+                raise InvokeGarnetAPIException("Invalid JSON " + str(response))
+
 
     def arm_system(self, partition: int, mode: str) -> None:
         """Armado de particion."""
@@ -302,7 +385,7 @@ class HTTP_API:
             raise InvokeGarnetAPIException(err)
 
         if("success" in response and response["success"]):
-            self.update_status(response["message"]["status"])
+            self.__update_status(response["message"]["status"])
         else: 
             if("message" in response):
                 if((response["message"] == "Failed to authenticate token.") or (response["message"] == "No token provided.")):
@@ -338,7 +421,7 @@ class HTTP_API:
             raise InvokeGarnetAPIException(err)
 
         if("success" in response and response["success"]):
-            self.update_status(response["message"]["status"])
+            self.__update_status(response["message"]["status"])
         else: 
             if("message" in response):
                 if((response["message"] == "Failed to authenticate token.") or (response["message"] == "No token provided.")):
@@ -374,7 +457,7 @@ class HTTP_API:
             raise InvokeGarnetAPIException(err)
 
         if("success" in response and response["success"]):
-            self.update_status(response["message"]["status"])
+            self.__update_status(response["message"]["status"])
         else: 
             if("message" in response):
                 if((response["message"] == "Failed to authenticate token.") or (response["message"] == "No token provided.")):
@@ -494,16 +577,6 @@ class HTTP_API:
         #TODO: Implementar
         #https://web.garnetcontrol.app/users_api/v1/systems/a10050008d96/lastEventReport
         #{"success":true,"message":1746308980819}
-
-
-    def __sequence(self, increment: int = 0) -> str:
-        """Devuelve numero de sequencia consecutivo y limitado en 255."""
-        # Despues de revisar la aplicacion me doy cuenta que el nro de secuencia se incrementa solo despues de enviar algunos comandos a la api
-        self.seq = self.seq + increment
-        if(self.seq == 256): self.seq = 0
-        if increment > 0:
-            return str(self.seq - 1).zfill(3)
-        return str(self.seq).zfill(3)
 
 
 class UnresponsiveGarnetAPI(Exception):
