@@ -101,8 +101,8 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
     @property
     def changed_by(self) -> str | None:
         """Last change triggered by."""
-        #_LOGGER.debug("Ejecutando changed_by")
-        return "#TODO: agregar la logica"
+        #TODO: Implementar quien hace el cambio. La API devuelve quien fue
+        return "Unknow user"
     
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:

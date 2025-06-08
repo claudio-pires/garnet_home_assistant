@@ -11,14 +11,15 @@ from .const import (
     PARTITION_BASE_ID, 
     ZONE_BASE_ID, 
     COMM_BASE_ID,
-    DEFAULT_KEEPALIVE_INTERVAL
+    DEFAULT_KEEPALIVE_INTERVAL,
+    REFRESHBUTTON_BASE_ID,
+    DEFAULT_UDP_PORT
 )
 from .httpapi import HTTP_API, GarnetEntity, DeviceType
 
 from homeassistant.core import HomeAssistant 
 
 from .siaserver import SIAUDPServer, siacode
-from .const import *
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -178,7 +179,7 @@ class GarnetAPI:
     
 
     async def async_force_device_status(self, device_id: int, new_state: any) -> None:
-        """Genera la accion sobre el device fisico"""
+        """Genera la accion sobre el device fisico. Version asincronica"""
         device = self.httpapi.__get_device_by_id__(device_id)
         if device.device_type == DeviceType.PARTITION:
             _LOGGER.debug("[async_force_device_status] API receives notification for partition to change with ID %i changed from %s to %s ", device_id, str(device.native_state), str(new_state))
@@ -208,31 +209,8 @@ class GarnetAPI:
 
 
     def force_device_status(self, device_id: int, new_state: any) -> None:
-        """Genera la accion sobre el device fisico"""
+        """Genera la accion sobre el device fisico. La funcion sincronica solo con botones"""
         device = self.httpapi.__get_device_by_id__(device_id)
-        if device.device_type == DeviceType.PARTITION:
-            _LOGGER.debug("[force_device_status] API receives notification for partition to change with ID %i changed from %s to %s ", device_id, str(device.native_state), str(new_state))
-            if(new_state == "home"):
-                try:
-                    self.httpapi.arm_system(device_id + 1, "home")
-                except Exception as err:
-                    _LOGGER.exception(err)
-                    device.native_state = device.native_state
-            elif(new_state == "away"):
-                try:
-                    self.httpapi.arm_system(device_id + 1, "away")
-                except Exception as err:
-                    _LOGGER.exception(err)
-                    device.native_state = device.native_state
-            elif(new_state == "disarmed"):
-                try:
-                    self.httpapi.disarm_system(device_id + 1)
-                except Exception as err:
-                    _LOGGER.exception(err)
-                    device.native_state = device.native_state
-        if device.device_type == DeviceType.HOWLER:
-            _LOGGER.debug("[force_device_status] API receives notification for howler with ID %i changed from %s to %s ", device_id, "on" if device.native_state else "off", "on" if new_state else "off")
-            device.native_state = new_state
         if device.device_type == DeviceType.BUTTON:
             _LOGGER.debug("[force_device_status] API receives notification for button %s with ID %i activation", device.name, device_id)
             if(device_id == REFRESHBUTTON_BASE_ID):
@@ -247,7 +225,6 @@ class GarnetAPI:
                 except Exception as err:
                     _LOGGER.exception(err)
         self.__coordinator_update_callback(self.httpapi.devices)
-
 
 
     def get_device_unique_id(self, device_id: str, device_type: DeviceType) -> str:

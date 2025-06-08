@@ -8,10 +8,22 @@ import time
 from enum import StrEnum
 from dataclasses import dataclass
 
-from .const import (GARNETAPIURL, TOKEN_TIME_SPAN, PARTITION_BASE_ID, ZONE_BASE_ID, HOWLER_BASE_ID, POLICEBUTTON_BASE_ID,
-                     DOCTORBUTTON_BASE_ID, FIREBUTTON_BASE_ID, TIMEDPANICBUTTON_BASE_ID, COMM_BASE_ID, GARNETAPITIMEOUT, REFRESHBUTTON_BASE_ID)
+from .const import (
+    GARNETAPIURL, 
+    TOKEN_TIME_SPAN, 
+    PARTITION_BASE_ID, 
+    ZONE_BASE_ID, 
+    HOWLER_BASE_ID, 
+    POLICEBUTTON_BASE_ID,
+    DOCTORBUTTON_BASE_ID, 
+    FIREBUTTON_BASE_ID, 
+    TIMEDPANICBUTTON_BASE_ID, 
+    COMM_BASE_ID, 
+    GARNETAPITIMEOUT, 
+    REFRESHBUTTON_BASE_ID
+)    
 
-from .httpdata import GarnetHTTPUser, GarnetPanelInfo, Zone,Partition
+from .httpdata import GarnetHTTPUser, GarnetPanelInfo, Zone
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -60,7 +72,10 @@ class HTTP_API:
     partition_mask: int                 # mascara que define las particiones configuradas
     zone_mask: int                      # mascara que define las zonas configuradas
     seq: int
-    
+    zonasAbiertas: int 
+    zonasEnAlarma: int 
+    zonasInhibidas: int 
+
 
     def __init__(self, email: str, pwd: str, panelid: str, controller: str) -> None:        
         """Initialise."""
@@ -230,21 +245,21 @@ class HTTP_API:
         registroProblemas2 = int(status[3:5], 16) # No usado
         _LOGGER.debug("registroProblemas1 = %d y registroProblemas2 = %d",  registroProblemas1, registroProblemas2)
 
-        zonasAbiertas = int(status[9:11], 16) + int(status[11:13], 16) * (256) + int(status[13:15], 16) * (256 ** 2) + int(status[15:17], 16) * (256 ** 3)
-        _LOGGER.debug("Estado de apertura de zonas es %s", bin(zonasAbiertas))
+        self.zonasAbiertas = int(status[9:11], 16) + int(status[11:13], 16) * (256) + int(status[13:15], 16) * (256 ** 2) + int(status[15:17], 16) * (256 ** 3)
+        _LOGGER.debug("Estado de apertura de zonas es %s", bin(self.zonasAbiertas))
 
-        zonasEnAlarma = int(status[17:19], 16) + int(status[19:21], 16) * (256) + int(status[21:23], 16) * (256 ** 2) + int(status[23:25], 16) * (256 ** 3)
-        _LOGGER.debug("Estado de alarma de zonas es %s", bin(zonasEnAlarma))
+        self.zonasEnAlarma = int(status[17:19], 16) + int(status[19:21], 16) * (256) + int(status[21:23], 16) * (256 ** 2) + int(status[23:25], 16) * (256 ** 3)
+        _LOGGER.debug("Estado de alarma de zonas es %s", bin(self.zonasEnAlarma))
 
-        zonasInhibidas = int(status[25:27], 16) + int(status[27:29], 16) * (256) + int(status[29:31], 16) * (256 ** 2) + int(status[31:33], 16) * (256 ** 3)
-        _LOGGER.debug("Estado de inhibicion de zonas es %s", bin(zonasInhibidas))
-
+        self.zonasInhibidas = int(status[25:27], 16) + int(status[27:29], 16) * (256) + int(status[29:31], 16) * (256 ** 2) + int(status[31:33], 16) * (256 ** 3)
+        _LOGGER.debug("Estado de inhibicion de zonas es %s", bin(self.zonasInhibidas))
 
         estadoDeParticiones1 = int(status[5:7], 16)
         estadoDeParticiones2 = int(status[35:37], 16)
         demorasPanel = int(status[37:39], 16)
         _LOGGER.debug("estadoDeParticiones1 = %d, estadoDeParticiones2 = %d y demorasPanel = %d",  estadoDeParticiones1, estadoDeParticiones2, demorasPanel)
 
+        flagArmado = False
         partitionStatus = [ "", "", "", ""]
         for i in range(0,4):
             if (estadoDeParticiones1 & (2 ** (7 - i))):
@@ -258,20 +273,22 @@ class HTTP_API:
             if (estadoDeParticiones2 & (2 ** (3 - i)) and (partitionStatus[i] == "ARMADO")):
                 # DEMORADO
                 partitionStatus[i] = "DEMORADO"
+                flagArmado = True
             elif (estadoDeParticiones2 & (2 ** (7 - i)) and (partitionStatus[i] == "ARMADO")):
                 # INSTANTANEO
                 partitionStatus[i] = "INSTANTANEO"
+                flagArmado = True
 
             if  self.partition_mask & (2 ** i):
                 p = self.__get_device_by_id__(PARTITION_BASE_ID + i + 1)
                 p.alarmed = False
                 if partitionStatus[i] == "DEMORADO":
                     p.native_state = "home"
-                    if zonasEnAlarma > 0:
+                    if self.zonasEnAlarma > 0:
                         p.alarmed = True        #TODO: confirmar si es correcto que se toma particion en alarma si las zonas estan en alarma
                 elif partitionStatus[i] == "INSTANTANEO":
                     p.native_state = "away"
-                    if zonasEnAlarma > 0:
+                    if self.zonasEnAlarma > 0:
                         p.alarmed = True        #TODO: confirmar si es correcto que se toma particion en alarma si las zonas estan en alarma
                 elif partitionStatus[i] == "LISTO":
                     p.native_state = "disarmed"
@@ -286,8 +303,10 @@ class HTTP_API:
             m = (2 ** i)
             if  self.zone_mask & m:
                 z = self.__get_device_by_id__(ZONE_BASE_ID + i + 1)
-                z.alarmed = (zonasEnAlarma & m) != 0
-                z.native_state = (1 if (zonasAbiertas & m)  != 0 else 0) + (2 if (zonasInhibidas & m) != 0 else 0)  # + (4 if v_armed != 0 else 0)  #TODO
+                z.alarmed = (self.zonasEnAlarma & m) != 0
+                z.native_state = (1 if (self.zonasAbiertas & m)  != 0 else 0) + \
+                                 (2 if (self.zonasInhibidas & m) != 0 else 0) + \
+                                 (4 if flagArmado else 0)  #TODO confirmar que es correcto. Se asume que todas las zonas estan armadas si alguna particion esta armada
 
 
         estadoDeSalidas = int(status[7:9], 16)
@@ -336,9 +355,18 @@ class HTTP_API:
         """Armado de particion."""
 
         if(not self.user.arm_permision):
-            raise PermissionError("User " + self.user.name + " has no permision for arming the partition")
+            raise PermissionError(f"User {self.user.name} has no permision for arming the partition")
 
-        #TODO: Si hay zonas abiertas no armar
+        # init: #1 Se resuelve https://github.com/claudio-pires/garnet-home-assistant/issues/1
+        # Se llama a getState y si hay zonas abiertas no se procede
+        try:
+            self.get_state()
+            if self.zonasAbiertas > 0:
+                raise Exception((f"Open zones, Partition cannot be armed")) 
+        except Exception as err:
+            _LOGGER.exception(err)
+            raise err
+        # end: #1
 
         body = {}
         body["seq"] = self.__sequence(increment = 1)

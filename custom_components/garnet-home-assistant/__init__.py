@@ -38,7 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     coordinator = GarnetPanelIntegrationCoordinator(hass, config_entry)     # Initialises the coordinator
     await coordinator.async_config_entry_first_refresh()                    # Perform an initial data load from api.
 
-    if not coordinator.api.connected:                       # TODO: Change this to match how your api will know if connected or successful update
+    if not coordinator.api.connected:                       # TODO: Modificar para reflejar excepciones coherentes
         raise ConfigEntryNotReady
     
     cancel_update_listener = config_entry.add_update_listener(_async_update_listener)   # Initialise a listener for config flow options changes.
@@ -55,6 +55,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 async def _async_update_listener(hass: HomeAssistant, config_entry):
     """Handles config options update."""
     await hass.config_entries.async_reload(config_entry.entry_id)       # Reload the integration when the options change.
+                                                                        # TODO: Debe quitar el listener SIA  y reemplazarlo por el nuevo. Por el momento se hace solo
 
 
 async def async_remove_config_entry_device(hass: HomeAssistant, config_entry: ConfigEntry, device_entry: DeviceEntry) -> bool:
