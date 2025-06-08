@@ -21,7 +21,7 @@ from .coordinator import GarnetPanelIntegrationCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 # Platforms required for the integration
-PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR, Platform.ALARM_CONTROL_PANEL, Platform.SWITCH, Platform.BUTTON]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.ALARM_CONTROL_PANEL, Platform.SWITCH, Platform.BUTTON]
 
 
 @dataclass
@@ -59,7 +59,6 @@ async def _async_update_listener(hass: HomeAssistant, config_entry):
 
 async def async_remove_config_entry_device(hass: HomeAssistant, config_entry: ConfigEntry, device_entry: DeviceEntry) -> bool:
     """Delete device if selected from UI. Adding this function shows the delete device option in the UI."""
-    # TODO: Si hay que hacer algo antes de borrar la integracion se tiene que hacer aca
     return True
 
 

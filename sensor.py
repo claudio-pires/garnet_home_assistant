@@ -27,6 +27,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         if device.device_type == DeviceType.ZONE
     ])
     async_add_entities([
+        PartitionSensor(coordinator, device)
+        for device in coordinator.data.devices
+        if device.device_type == DeviceType.PARTITION
+    ])
+    async_add_entities([
         TextSensor(coordinator, device)
         for device in coordinator.data.devices
         if device.device_type == DeviceType.TEXT_SENSOR
@@ -167,3 +172,82 @@ class TextSensor(CoordinatorEntity, SensorEntity):
         if(self._icon):
             return self._icon
         return None
+    
+    
+class PartitionSensor(CoordinatorEntity, SensorEntity):
+    """Implementation of a zone monitoring sensor."""
+
+    def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: GarnetEntity) -> None:
+        """Initialise sensor."""
+        super().__init__(coordinator)
+        self.device = device
+        self.device_id = device.device_id
+        self._icon = device.icon
+
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Update sensor with latest data from coordinator. This method is called by your GarnetPanelIntegrationCoordinator when a successful update runs."""
+        self.device = self.coordinator.get_device_by_id(self.device.device_type, self.device_id)
+        #self._attr_native_value = self.device.native_state
+        #self.async_write_ha_state()
+        self.schedule_update_ha_state()
+
+
+    @property
+    def options(self) -> list[str] | None:
+        return self.coordinator.api.zone_statuses
+
+
+    @property
+    def device_class(self) -> str:
+        """Returns device class."""
+        return SensorDeviceClass.ENUM
+    
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return panel device information. This is the parent device"""
+        return self.coordinator.get_device_info()
+
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return self.device.name
+
+
+    @property
+    def unique_id(self) -> str:
+        """Return unique id."""
+        # All entities must have a unique id.  Think carefully what you want this to be as
+        # changing it later will cause HA to create new entities.
+        return f"{DOMAIN}-{self.device.device_unique_id}"
+
+
+    @property
+    def extra_state_attributes(self):
+        """Return the extra state attributes. Add any additional attributes you want on your sensor."""
+        attrs = {}                  
+        #attrs["extra_info"] = "Extra Info"          
+        return attrs
+
+
+    @property
+    def state(self) -> any:
+
+        if self.device.alarmed:
+            return "Alarmed"
+        else:
+            if (self.device.native_state == "home" or self.device.native_state == "away"):
+                return "Armed"
+            elif self.device.native_state == "disarmed":
+                return "Clear"
+        return "Open zones"
+
+
+    @property
+    def icon(self):
+        if(self._icon):
+            return self._icon
+        return None    

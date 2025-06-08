@@ -1,6 +1,6 @@
 {
   "config": {
-    "title": "Example Integration",
+    "title": "Garnet Panel Integration",
     "abort": {
       "already_configured": "Device is already configured",
       "reconfigure_successful": "Reconfiguration successful"
@@ -13,16 +13,15 @@
     "step": {
       "user": {
         "data": {
-          "host": "Host",
-          "password": "Password",
-          "username": "Username"
+          "conf_clientid": "SIA client ID",
+          "conf_systemid": "Garnet Control System ID",
+          "conf_password": "Garnet Control password",
+          "conf_username": "Garnet Control user (email)"
         }
       },
       "reconfigure": {
         "data": {
-          "host": "Host",
-          "password": "Password",
-          "username": "Username"
+          "conf_password": "Garnet Control password"
         }
       }
     }
@@ -31,10 +30,11 @@
     "step": {
       "init": {
         "data": {
-          "scan_interval": "Scan Interval (seconds)"
+          "conf_keepalive": "Keepalive interval(seconds)"
+
         },
-        "description": "Amend your options.",
-        "title": "Example Integration Options"
+        "description": "Setup options",
+        "title": "Garnet Panel Integration Options"
       }
     }
   }

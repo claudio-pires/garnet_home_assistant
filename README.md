@@ -2,7 +2,6 @@
 
 Integracion de paneles de alarmas domiciliarias [Garnet Technologies](https://www.garnet.com.ar/) en Home Assistant.
 Si bien los paneles disponen de alguna posibilidad de disparar automatizaciones, son muy limitadas y desde que posee un panel Garnet en mi casa siempre quise disparar automatizaciones mas complejas como por ejemplo armar la alarma en modo home cuando me voy a dormir, o disparar un panico temporizado cuando entro con el auto en mi garage durante la noche.
-Esta integracion tiene aun algunas limitaciones que describo mas abajo.
 No soy programador python y tambien esta es mi primera integracion para Home Assistant asi que sepan disculpar si ven errores groseros. Cualquier sugerencia de mejora es bienvenida.
 Esta integracion ha sido probada con un panel PC-732-G con comunicador 500G
 
@@ -44,22 +43,18 @@ Esta integracion ha sido probada con un panel PC-732-G con comunicador 500G
 ### Sobre el panel 
 1. Crear una cuenta en [Garnet Control](https://web.garnetcontrol.app/#!/register)
 2. Registrá tu sistema de alarma, y toma nota del numero de sistema que será necesario para registrar luego la integracion, por ejemplo `a123456789`
-3. Tu comunicador debe tener una conexion a la red Wifi funcionando. Es necesario configurar el monitoreo por Wifi y asignar la direccion IP de la receptora con la IP de tu controlador home assistant. Tambien podes ingresar `homeassistant.local`. El puerto debe ser `2123`. Ingresa un numero de abonado y el keepalive que debe ser `1` minuto. El protocolo debe ser `SDC2`.
+3. Tu comunicador debe tener una conexion a la red Wifi funcionando. Es necesario configurar el monitoreo por Wifi y asignar la direccion IP de la receptora con la IP de tu controlador home assistant. Tambien podes ingresar `homeassistant.local`. El puerto debe ser `2123`. Ingresa un numero de abonado. Si el keepalive es diferente de `1` minuto se debe configurar en la integracion. El protocolo debe ser `SDC2`.
 
 ### Crear la integracion
 1. En Home assistant ir a `Settings`, luego `Devices & services` y hacer clic en el boton `+ ADD INTEGRATION`. Buscar `Garnet` y seleccionar.
-2. Ingresar los datos de acceso a `Garnet Control`, el numero de sistema y el numero de abonado.
+2. Ingresar los datos de acceso a `Garnet Control`, el numero de sistema y el numero de abonado. SI el timeout es distinto a 60 segundos reconfigurar.
 
 
 
 ### Pendientes
-La trama de estado que devuelven los comandos en la API se interpretó en base a prueba y error. Intentaré conseguir documentación oficial para poder terminar algunas funciones. 
-- Actualmente soporto una única partición porque no conozco como interpreat estados de varias particiones. 
-- El estado incial luego de un reinicio es desconocido porque no se como interpretar el estado, se sicroniza luego de una operación de teclado, llavero o app móvil cualdo le llega el primer mensaje SIA.
-- El estado de imposible armar (existe alguna zona abierta) no es interpretado y por lo tanto es posible armar una partición con una zona abierta lo que hace automáticamente entrar en alarma.
-
-Aun no conozco el tiempo de validez del token, se asumen 10 minutos
-Pendiente implementear funciones para bypassear zonas, pánico demorado, obtener eventos varios (estado de baterías, energía, etc)
+- a trama de estado que devuelven los comandos en la API se interpretó en base a prueba y error. Intentaré conseguir documentación oficial para poder terminar algunas funciones. 
+- Aun no conozco el tiempo de validez del token, se asumen 10 minutos
+- Pendiente implementear funciones para bypassear zonas, pánico demorado, obtener eventos varios (estado de baterías, energía, etc)
 
 
 ## Contribución

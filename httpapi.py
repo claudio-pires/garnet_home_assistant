@@ -115,7 +115,7 @@ class HTTP_API:
             _LOGGER.exception(err)
             raise InvokeGarnetAPIException(err)
         if("success" in response and response["success"]):
-            _LOGGER.info("Successful login to GARTNET http")            
+            _LOGGER.info("Successful login to GARNET http")            
             self.session_token.token = response["accessToken"]
             self.session_token.creation = time.time()
             self.seq = 1
@@ -230,6 +230,16 @@ class HTTP_API:
         registroProblemas2 = int(status[3:5], 16) # No usado
         _LOGGER.debug("registroProblemas1 = %d y registroProblemas2 = %d",  registroProblemas1, registroProblemas2)
 
+        zonasAbiertas = int(status[9:11], 16) + int(status[11:13], 16) * (256) + int(status[13:15], 16) * (256 ** 2) + int(status[15:17], 16) * (256 ** 3)
+        _LOGGER.debug("Estado de apertura de zonas es %s", bin(zonasAbiertas))
+
+        zonasEnAlarma = int(status[17:19], 16) + int(status[19:21], 16) * (256) + int(status[21:23], 16) * (256 ** 2) + int(status[23:25], 16) * (256 ** 3)
+        _LOGGER.debug("Estado de alarma de zonas es %s", bin(zonasEnAlarma))
+
+        zonasInhibidas = int(status[25:27], 16) + int(status[27:29], 16) * (256) + int(status[29:31], 16) * (256 ** 2) + int(status[31:33], 16) * (256 ** 3)
+        _LOGGER.debug("Estado de inhibicion de zonas es %s", bin(zonasInhibidas))
+
+
         estadoDeParticiones1 = int(status[5:7], 16)
         estadoDeParticiones2 = int(status[35:37], 16)
         demorasPanel = int(status[37:39], 16)
@@ -254,10 +264,15 @@ class HTTP_API:
 
             if  self.partition_mask & (2 ** i):
                 p = self.__get_device_by_id__(PARTITION_BASE_ID + i + 1)
+                p.alarmed = False
                 if partitionStatus[i] == "DEMORADO":
                     p.native_state = "home"
+                    if zonasEnAlarma > 0:
+                        p.alarmed = True        #TODO: confirmar si es correcto que se toma particion en alarma si las zonas estan en alarma
                 elif partitionStatus[i] == "INSTANTANEO":
                     p.native_state = "away"
+                    if zonasEnAlarma > 0:
+                        p.alarmed = True        #TODO: confirmar si es correcto que se toma particion en alarma si las zonas estan en alarma
                 elif partitionStatus[i] == "LISTO":
                     p.native_state = "disarmed"
                 else:
@@ -266,67 +281,24 @@ class HTTP_API:
             else:
                 _LOGGER.debug("Particion no configurada %d en estado %s",  i + 1, partitionStatus[i] )
 
-        zonasAbiertas = []
-        zonasAbiertas.append(int(status[9:11], 16))
-        zonasAbiertas.append(int(status[11:13], 16))
-        zonasAbiertas.append(int(status[13:15], 16))
-        zonasAbiertas.append(int(status[15:17], 16))
-        _LOGGER.debug("Estado de apertura de zonas (1 a 8)=%d, (9 a 16)=%d, (17 a 24)=%d y (25 a 32)=%d", zonasAbiertas[0], zonasAbiertas[1], zonasAbiertas[2], zonasAbiertas[3])
 
-        zonasEnAlarma = []
-        zonasEnAlarma.append(int(status[17:19], 16))
-        zonasEnAlarma.append(int(status[19:21], 16))
-        zonasEnAlarma.append(int(status[21:23], 16))
-        zonasEnAlarma.append(int(status[23:25], 16))
-        _LOGGER.debug("Estado de alarma de zonas (1 a 8)=%d, (9 a 16)=%d, (17 a 24)=%d y (25 a 32)=%d", zonasEnAlarma[0], zonasEnAlarma[1], zonasEnAlarma[2], zonasEnAlarma[3])
+        for i in range(0,32):
+            m = (2 ** i)
+            if  self.zone_mask & m:
+                z = self.__get_device_by_id__(ZONE_BASE_ID + i + 1)
+                z.alarmed = (zonasEnAlarma & m) != 0
+                z.native_state = (1 if (zonasAbiertas & m)  != 0 else 0) + (2 if (zonasInhibidas & m) != 0 else 0)  # + (4 if v_armed != 0 else 0)  #TODO
 
-        zonasInhibidas = []
-        zonasInhibidas.append(int(status[25:27], 16))
-        zonasInhibidas.append(int(status[27:29], 16))
-        zonasInhibidas.append(int(status[29:31], 16))
-        zonasInhibidas.append(int(status[31:33], 16))
-        _LOGGER.debug("Estado de inhibicion de zonas (1 a 8)=%d, (9 a 1update_status(6)=%d, (17 a 24)=%d y (25 a 32)=%d", zonasInhibidas[0], zonasInhibidas[1], zonasInhibidas[2], zonasInhibidas[3])
 
         estadoDeSalidas = int(status[7:9], 16)
         _LOGGER.debug("Estado de salidas cableadas es %d ", estadoDeSalidas)
+        howler = self.__get_device_by_id__(HOWLER_BASE_ID)
+        howler.native_state = "on" if (estadoDeSalidas & 1) > 0 else "off"
+        _LOGGER.debug("Sirena en estado %s", howler.native_state )
 
         estadoDeSalidasInalambricas = int(status[33:35], 16)
         _LOGGER.debug("Estado de salidas inalambricas es %d ", estadoDeSalidasInalambricas)
 
-
-        _LOGGER.debug("Mascara de estado de zona: 0x%s", status[9:11])
-        _LOGGER.debug("Mascara de estado de alarma: 0x%s", status[11:19])
-        _LOGGER.debug("Mascara de estado de inhibicion: 0x%s", status[19:27])
-        m_open = int(status[9:11], 16) & 255
-        m_alm = int(status[11:19], 16) & 255
-        m_inh = int(status[19:27], 16) & 255
-        s = 16
-        while(s > 0):
-            z = 17 - s
-            v_open = m_open & 1
-            v_alm = m_alm & 1
-            v_inh = m_inh & 1
-            if self.zone_mask & (2 ** (z - 1)):
-                zone = self.__get_device_by_id__(ZONE_BASE_ID + z)
-                zone.alarmed = v_alm != 0
-                zone.native_state = (1 if v_open != 0 else 0) + (2 if v_inh != 0 else 0)  # + (4 if v_armed != 0 else 0)  #TODO
-            m_open = m_open >> 1
-            m_alm = m_alm >> 1
-            m_inh = m_inh >> 1
-            s = s - 1                    
-
-        m = int(status[8:9], 16) & 1
-        _LOGGER.debug("Mascara de sirena: 0x%s / %s", status[8:9], "Sirena apagada" if(m == 0) else "Sirena activada")
-        howler = self.__get_device_by_id__(HOWLER_BASE_ID)
-        howler.native_state = "on" if m > 0 else "off"
-
-        m = int(status[5:9], 16)
-
-        for p in self.devices:
-            if p.device_type == DeviceType.PARTITION:
-                #TODO: Esto esta maaaaaaaaal hay que sacar la informacion de forma correcta de la trama para todas las particiones
-                p.alarmed = (int(status[11:19], 16) & 255) != 0 
- 
 
     def get_state(self) -> None:
 

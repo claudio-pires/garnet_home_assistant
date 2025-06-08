@@ -6,9 +6,14 @@ from collections.abc import Callable
 import time
 import threading
 
-from .const import ( DOMAIN, PARTITION_BASE_ID, ZONE_BASE_ID, COMM_BASE_ID )
-from .httpapi  import HTTP_API, GarnetEntity, DeviceType
-from .httpdata import Zone, Partition
+from .const import ( 
+    DOMAIN, 
+    PARTITION_BASE_ID, 
+    ZONE_BASE_ID, 
+    COMM_BASE_ID,
+    DEFAULT_KEEPALIVE_INTERVAL
+)
+from .httpapi import HTTP_API, GarnetEntity, DeviceType
 
 from homeassistant.core import HomeAssistant 
 
@@ -26,6 +31,7 @@ class GarnetAPI:
 
     messageserver = None
     __coordinator_update_callback: Callable = None
+    keepalive_interval: int = DEFAULT_KEEPALIVE_INTERVAL
 
     @property
     def controller_name(self) -> str:
@@ -44,6 +50,7 @@ class GarnetAPI:
         self.user = None
         self.system = None
         self.hass = hass
+        self.sia_port = DEFAULT_UDP_PORT
 
 
     def connect(self) -> bool:
@@ -52,7 +59,7 @@ class GarnetAPI:
             # Crea el socket UDP para recibir mensajes SIA. Solo uno no importa la cantidad de integraciones activas
             # Si falla no sigue.
             if(GarnetAPI.messageserver == None):
-                GarnetAPI.messageserver = SIAUDPServer() 
+                GarnetAPI.messageserver = SIAUDPServer(port=self.sia_port) 
 
             # Obtiene el modelo de datos de la WEB de garnet
             # SI no falla recien se registra como listener de mensajes SIA e informa que esta conectado
@@ -85,13 +92,13 @@ class GarnetAPI:
 
     def __connection_monitor_task(self):
         """Thread para monitoreo de la conexion"""
-        time.sleep(60)
+        time.sleep(self.keepalive_interval)
         s = self.httpapi.__get_device_by_id__(COMM_BASE_ID)
         while(self.connected):
             try:
-                time.sleep(60)      #TODO Tomar el tiempo de una configuracion del sistema, cada tablero tendra siu propia configuracion
+                time.sleep(self.keepalive_interval)    
                 t = time.time() - s.uptime
-                n = "Disconnected" if t > 90 else "Connected"
+                n = "Disconnected" if t > int(1.5 *self.keepalive_interval) else "Connected"
                 _LOGGER.debug("Checking last keepalive received was %d seconds before, previous state was %s",t, s.native_state)
                 if n != s.native_state:
                     s.native_state = n

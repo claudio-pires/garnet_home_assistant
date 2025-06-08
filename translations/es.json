@@ -1,0 +1,41 @@
+{
+  "config": {
+    "title": "Integracion de Panel Garnet",
+    "abort": {
+      "already_configured": "Device ya configurado",
+      "reconfigure_successful": "Configuración exitosa"
+    },
+    "error": {
+      "cannot_connect": "Falla de conexion",
+      "invalid_auth": "Autenticacion inválida",
+      "unknown": "Error no esperado"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "conf_clientid": "ID de cliente SIA",
+          "conf_systemid": "System ID de Garnet Control",
+          "conf_password": "Contraseña",
+          "conf_username": "Usuario de Garnet Control (email)"
+        }
+      },
+      "reconfigure": {
+        "data": {
+          "conf_password": "Contraseña"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "conf_keepalive": "Intervalo de Keepalive (segundos)"
+
+        },
+        "description": "SCambie las opciones",
+        "title": "Opciones de Integracion de Panel Garnet"
+      }
+    }
+  }
+}

@@ -2,17 +2,17 @@
 
 DOMAIN = "garnet-home-assistant"
 
-DEFAULT_SCAN_INTERVAL = 60
-MIN_SCAN_INTERVAL = 10
+DEFAULT_KEEPALIVE_INTERVAL = 60
+MIN_KEEPALIVE_INTERVAL = 60
+CONF_KEEPALIVE_INTERVAL = "conf_keepalive"
+
+CONF_ACCOUNT = "conf_clientid"
+CONF_SYSTEM = "conf_systemid"
+CONF_GARNETUSER = "conf_username"
+CONF_GARNETPASS = "conf_password"
 
 
-CONF_ACCOUNT = "Client ID"
-CONF_SYSTEM = "System ID"
-CONF_GARNETUSER = "Garnet Control user (email)"
-CONF_GARNETPASS = "Garnet Control password"
-
-
-UDP_PORT = 2123
+DEFAULT_UDP_PORT = 2123
 SIA_BUFFERSIZE = 1024
 MESSAGESERVER_TIMEOUT = 30
 GARNETAPIURL = "web.garnetcontrol.app"

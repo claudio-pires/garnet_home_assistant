@@ -8,7 +8,7 @@ import datetime
 
 from enum import Enum
 
-from .const import MESSAGESERVER_TIMEOUT, UDP_PORT, SIA_BUFFERSIZE
+from .const import MESSAGESERVER_TIMEOUT, SIA_BUFFERSIZE, DEFAULT_UDP_PORT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,11 +41,14 @@ class SIAUDPServer():
     sia_thread = None
     errorcode = None
     active = False
+    port = DEFAULT_UDP_PORT
 
-    def __init__(self):
+
+    def __init__(self, port: int = DEFAULT_UDP_PORT):
         """Thread que recibe los mensajes SIA."""
         SIAUDPServer.subscribers = {}
         SIAUDPServer.active = True
+        SIAUDPServer.port = port
         SIAUDPServer.sia_thread = threading.Thread(target=SIAUDPServer.__messageserver_thread, name="SIA-Thread")
         _LOGGER.info("Starting SIA UDP Server...")
         SIAUDPServer.sia_thread.start()
@@ -68,9 +71,9 @@ class SIAUDPServer():
            Luego envia al suscriptor que corresponda"""
         #TODO: Cuando inicia el socket deberia descartar los mensajes recibidos porque en general el panel escupe todo lo que no pudo enviar
         try:
-            _LOGGER.info("[__messageserver_thread] Starting SIA parser @ UDP port #%s",str(UDP_PORT))
+            _LOGGER.info("[__messageserver_thread] Starting SIA parser @ UDP port #%s",str(SIAUDPServer.port))
             UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)      # Create a datagram UDP socket
-            UDPServerSocket.bind(('' , UDP_PORT))                                               # Bind to address and ip
+            UDPServerSocket.bind(('' , SIAUDPServer.port))                                               # Bind to address and ip
             SIAUDPServer.errorcode = "success"
             while(SIAUDPServer.active):
                 (datagram,senderAddr) = UDPServerSocket.recvfrom(SIA_BUFFERSIZE)                # Listen for incoming datagrams
@@ -135,9 +138,10 @@ class SIAUDPServer():
         """Agrega un callback al message server"""
         if(client not in SIAUDPServer.subscribers):
             _LOGGER.info("[add] New suscriber account %s", str(client))
-            SIAUDPServer.subscribers[client] = callback
         else:
             _LOGGER.warning("[add] Suscriber %s already registered", str(client))
+            SIAUDPServer.subscribers.pop(client)
+        SIAUDPServer.subscribers[client] = callback     # Siempre se registra el ultimo
 
 
     def remove(self, client: str):

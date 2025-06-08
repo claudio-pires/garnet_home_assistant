@@ -13,7 +13,16 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
 from .api import GarnetAPI, APIConnectionError
-from .const import DOMAIN, CONF_ACCOUNT, CONF_SYSTEM, CONF_GARNETUSER, CONF_GARNETPASS, MIN_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+from .const import (
+    DOMAIN, 
+    CONF_ACCOUNT, 
+    CONF_SYSTEM, 
+    CONF_GARNETUSER, 
+    CONF_GARNETPASS, 
+    MIN_KEEPALIVE_INTERVAL, 
+    DEFAULT_KEEPALIVE_INTERVAL, 
+    CONF_KEEPALIVE_INTERVAL,
+)
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -31,10 +40,8 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect.
-
-    Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
-    """
-    _LOGGER.debug("**** validate_input")
+       Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user."""
+    _LOGGER.debug("[validate_input]")
     api = GarnetAPI(hass, data[CONF_GARNETUSER], data[CONF_GARNETPASS], data[CONF_ACCOUNT], data[CONF_SYSTEM])
     try:
        await hass.async_add_executor_job(api.connect)
@@ -54,12 +61,13 @@ class GarnetIntConfigFlow(ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry):
         """Get the options flow for this handler."""
-        _LOGGER.info("GarnetIntConfigFlow->async_get_options_flow()")
+        _LOGGER.info("[async_get_options_flow]")
         return GarnetIntOptionsFlowHandler(config_entry)
+
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the initial step. Called when you initiate adding an integration via the UI."""
-        _LOGGER.info("GarnetIntConfigFlow->async_step_user()")
+        _LOGGER.info("[async_step_user]")
         errors: dict[str, str] = {}
         if user_input is not None:
             # The form has been filled in and submitted, so process the data provided.
@@ -94,7 +102,6 @@ class GarnetIntConfigFlow(ConfigFlow, domain=DOMAIN):
         """Add reconfigure step to allow to reconfigure a config entry."""
         # This methid displays a reconfigure option in the integration and is different to options.
         # It can be used to reconfigure any of the data submitted when first installed. This is optional and can be removed if you do not want to allow reconfiguration.
-        _LOGGER.error("**** async_step_reconfigure")
         errors: dict[str, str] = {}
         config_entry = self.hass.config_entries.async_get_entry(
             self.context["entry_id"]
@@ -137,31 +144,27 @@ class GarnetIntConfigFlow(ConfigFlow, domain=DOMAIN):
 class GarnetIntOptionsFlowHandler(OptionsFlow):
     """Handles the options flow."""
 
+
     def __init__(self, config_entry: ConfigEntry) -> None:
         """Initialize options flow."""
-        _LOGGER.error("**** __init__")
         #self.config_entry = config_entry
         self.options = dict(config_entry.options)
 
+
     async def async_step_init(self, user_input=None):
         """Handle options flow."""
-        _LOGGER.error("**** async_step_init")
         if user_input is not None:
             options = self.config_entry.options | user_input
             return self.async_create_entry(title="", data=options)
 
-        # It is recommended to prepopulate options fields with default values if available.
-        # These will be the same default values you use on your coordinator for setting variable values
-        # if the option has not been set.
         data_schema = vol.Schema(
             {
                 vol.Required(
-                    CONF_SCAN_INTERVAL,
-                    default=self.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
-                ): (vol.All(vol.Coerce(int), vol.Clamp(min=MIN_SCAN_INTERVAL))),
+                    CONF_KEEPALIVE_INTERVAL,
+                    default=self.options.get(CONF_KEEPALIVE_INTERVAL, DEFAULT_KEEPALIVE_INTERVAL),
+                ): (vol.All(vol.Coerce(int), vol.Clamp(min=MIN_KEEPALIVE_INTERVAL))),
             }
         )
-
         return self.async_show_form(step_id="init", data_schema=data_schema)
 
 

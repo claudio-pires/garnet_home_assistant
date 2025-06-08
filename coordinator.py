@@ -1,4 +1,4 @@
-"""Example integration using DataUpdateCoordinator."""
+"""Garnet integration using DataUpdateCoordinator."""
 
 from dataclasses import dataclass
 
@@ -11,7 +11,14 @@ from homeassistant.helpers.device_registry import DeviceInfo
 
 from .api import APIAuthError, GarnetAPI
 from .httpapi import DeviceType, GarnetEntity
-from .const import CONF_ACCOUNT, CONF_GARNETUSER, CONF_GARNETPASS, CONF_SYSTEM
+from .const import (
+    CONF_ACCOUNT, 
+    CONF_GARNETUSER, 
+    CONF_GARNETPASS, 
+    CONF_SYSTEM, 
+    CONF_KEEPALIVE_INTERVAL, 
+    DEFAULT_KEEPALIVE_INTERVAL
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,7 +38,6 @@ class GarnetPanelIntegrationCoordinator(DataUpdateCoordinator):
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize coordinator."""
-
         self.account = config_entry.data[CONF_ACCOUNT]
         self.systemid = config_entry.data[CONF_SYSTEM]
         self.user = config_entry.data[CONF_GARNETUSER]
@@ -43,6 +49,7 @@ class GarnetPanelIntegrationCoordinator(DataUpdateCoordinator):
                                                                                                               # to get devices on first load.
                                                                                                               # update_interval = None makes data will be pushed.
         self.api = GarnetAPI(hass=hass, user=self.user, pwd=self.pwd, account=self.account, systemid=self.systemid)
+        self.api.keepalive_interval = int(config_entry.options.get(CONF_KEEPALIVE_INTERVAL, DEFAULT_KEEPALIVE_INTERVAL))
         self.api.setcallback(message_callback=self.devices_update_callback)
 
  
