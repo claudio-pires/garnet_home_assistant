@@ -1,6 +1,5 @@
 {
   "config": {
-    "title": "Integracion de Panel Garnet",
     "abort": {
       "already_configured": "Device ya configurado",
       "reconfigure_successful": "Configuración exitosa"
