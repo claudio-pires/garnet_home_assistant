@@ -1,3 +1,4 @@
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?repository=https%3A%2F%2Fgithub.com%2Fclaudio-pires%2Fgarnet-home-assistant&category=Integration&owner=claudio-pires)
 # Garnet Alarm Panels integration for Home Assistant
 
 Integracion de paneles de alarmas domiciliarias [Garnet Technologies](https://www.garnet.com.ar/) en Home Assistant.
