@@ -1,6 +1,6 @@
 """Constants for the Garnet Panel integration."""
 
-DOMAIN = "garnet-home-assistant"
+DOMAIN = "garnet_home_assistant"
 
 DEFAULT_KEEPALIVE_INTERVAL = 60
 MIN_KEEPALIVE_INTERVAL = 60

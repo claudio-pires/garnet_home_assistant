@@ -1,4 +1,4 @@
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?repository=garnet-home-assistant&category=Integration&owner=claudio-pires)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?repository=garnet_home_assistant&category=Integration&owner=claudio-pires)
 # Garnet Alarm Panels integration for Home Assistant
 
 Integracion de paneles de alarmas domiciliarias [Garnet Technologies](https://www.garnet.com.ar/) en Home Assistant.
@@ -25,7 +25,7 @@ Esta integracion ha sido probada con un panel PC-732-G con comunicador 500G
 ## Instalación
 
 ### Opción 1: Instalación Manual
-1. Descargar la carpeta `garnet-home-assistant` desde la [última release](https://github.com/claudio-pires/garnet-home-assistant/releases/latest)
+1. Descargar la carpeta `garnet_home_assistant` desde la [última release](https://github.com/claudio-pires/garnet_home_assistant/releases/latest)
 2. Copiarlo a la carpeta [`carpeta custom_components`](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations)
 3. Reiniciar Home Assistant
 
@@ -60,5 +60,5 @@ Esta integracion ha sido probada con un panel PC-732-G con comunicador 500G
 
 ## Contribución
 - Muchas gracias a [Guido117](https://github.com/Guido117) por su ayuda con la informacion sobre API Garnet
-- Son bienvenidas las solicitudes de nuevas funcionalidades y los reportes de bugs! Abrir un [issue en GitHub](https://github.com/claudio-pires/garnet-home-assistant/issues/new/choose).
+- Son bienvenidas las solicitudes de nuevas funcionalidades y los reportes de bugs! Abrir un [issue en GitHub](https://github.com/claudio-pires/garnet_home_assistant/issues/new/choose).
 - Bienvenidos tambien quienes deseen colaborar en el mantenimiento y agregado de nuevas funcionalidades
