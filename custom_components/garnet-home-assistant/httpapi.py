@@ -109,13 +109,16 @@ class HTTP_API:
 
 
     def __token(self) -> str:
-        if (time.time() - self.session_token.creation) > TOKEN_TIME_SPAN:
+        _span = time.time() - self.session_token.creation
+        _LOGGER.debug(f"Token timespan is {_span} with max configured is {TOKEN_TIME_SPAN}")            
+        if _span > TOKEN_TIME_SPAN:
             self.__login()            #TODO catchear excepcion y plan de recovery
         return self.session_token.token
 
 
     def __login(self) -> None:
         """Obtiene token de sesion."""
+        _LOGGER.debug("Executing Login() method")
         body = {}
         body["email"] = self.user.email
         body["password"] = self.user.password
@@ -123,6 +126,7 @@ class HTTP_API:
         response = {}
         try:
             conn = http.client.HTTPSConnection(GARNETAPIURL)
+            _LOGGER.debug(f"Executing POST on /users_api/v1/auth/login with body={json.dumps(body)}")
             conn.request("POST", "/users_api/v1/auth/login", json.dumps(body), { 'Content-Type': 'application/json' })
             response = json.loads(conn.getresponse().read().decode("utf-8"))
             conn.close()
@@ -148,10 +152,13 @@ class HTTP_API:
 
     def __collect_system_info(self) -> None:
         """Obtiene informacion de zonas y sistema GARNET."""
+        _LOGGER.debug("Executing __collect_system_info() method")
         response = {}
         try:
             conn = http.client.HTTPSConnection(GARNETAPIURL)
-            conn.request("GET", "/users_api/v1/systems/" + self.panelid , '', { 'x-access-token': self.__token() })
+            _token = self.__token()
+            _LOGGER.debug(f"Executing GET on /users_api/v1/systems/{self.panelid} with no body and header='x-access-token': {_token}")
+            conn.request("GET", f"/users_api/v1/systems/{self.panelid}", '', { 'x-access-token': _token })
             response = json.loads(conn.getresponse().read().decode("utf-8"))
             conn.close()
         except Exception as err:
@@ -238,7 +245,7 @@ class HTTP_API:
     def __update_status(self, status: str) -> None:
         """Parseo del estado del panel"""
         # Nota: se obtiene de la funcion processStatus en js de la web de garnetcontrol
-
+        _LOGGER.debug("Executing __update_status() method")
         _LOGGER.debug("Se recibe trama " + status)
 
         registroProblemas1 = int(status[1:3], 16) # No usado
@@ -329,7 +336,9 @@ class HTTP_API:
         response = {}
         try:
             conn = http.client.HTTPSConnection(GARNETAPIURL)
-            conn.request("POST", "/users_api/v1/systems/" + self.panelid + "/commands/state", json.dumps(body), { 'x-access-token': self.__token(), 'Content-Type': 'application/json' })
+            _token = self.__token()
+            _LOGGER.debug(f"Executing POST on /users_api/v1/systems/{self.panelid}/commands/state with body={json.dumps(body)} and header='x-access-token': {_token}")
+            conn.request("POST", f"/users_api/v1/systems/{self.panelid}/commands/state", json.dumps(body), { 'x-access-token': _token, 'Content-Type': 'application/json' })
             response = json.loads(conn.getresponse().read().decode("utf-8"))
             conn.close()
         except Exception as err:
@@ -353,6 +362,7 @@ class HTTP_API:
 
     def arm_system(self, partition: int, mode: str) -> None:
         """Armado de particion."""
+        _LOGGER.debug(f"Executing arm_system({partition}) method")
 
         if(not self.user.arm_permision):
             raise PermissionError(f"User {self.user.name} has no permision for arming the partition")
@@ -377,7 +387,9 @@ class HTTP_API:
         try:
             command = ("delayed" if mode == "home" else "away")
             conn = http.client.HTTPSConnection(GARNETAPIURL)
-            conn.request("POST", "/users_api/v1/systems/" + self.system.id + "/commands/arm/" + command, json.dumps(body), { 'x-access-token': self.__token(), 'Content-Type': 'application/json' })
+            _token=self.__token()
+            _LOGGER.debug(f"Executing POST on /users_api/v1/systems/{self.system.id}/commands/arm/{command} with body={json.dumps(body)} and header='x-access-token': {_token}")
+            conn.request("POST", f"/users_api/v1/systems/{self.system.id}/commands/arm/{command}", json.dumps(body), { 'x-access-token': _token, 'Content-Type': 'application/json' })
             response = json.loads(conn.getresponse().read().decode("utf-8"))
             conn.close()
         except Exception as err:
@@ -401,6 +413,7 @@ class HTTP_API:
 
     def disarm_system(self, partition: int) -> None:
         """Desarmado de particion."""
+        _LOGGER.debug(f"Executing disarm_system({partition}) method")
 
         if(not self.user.disarm_permision):
             raise PermissionError("User " + self.user.name + " has no permision for disarming the partition")
@@ -413,7 +426,9 @@ class HTTP_API:
         response = {}
         try:
             conn = http.client.HTTPSConnection(GARNETAPIURL)
-            conn.request("POST", "/users_api/v1/systems/" + self.system.id + "/commands/disarm", json.dumps(body), { 'x-access-token': self.__token(), 'Content-Type': 'application/json' })
+            _token=self.__token()
+            _LOGGER.debug(f"Executing POST on /users_api/v1/systems/{self.system.id}/commands/disarm with body={json.dumps(body)} and header='x-access-token': {_token}")
+            conn.request("POST", f"/users_api/v1/systems/{self.system.id}/commands/disarm", json.dumps(body), { 'x-access-token': _token, 'Content-Type': 'application/json' })
             response = json.loads(conn.getresponse().read().decode("utf-8"))
             conn.close()
         except Exception as err:
@@ -437,6 +452,7 @@ class HTTP_API:
 
     def horn_control(self, mode: str) -> None:
         """Control de sirena."""
+        _LOGGER.debug(f"Executing horn_control({mode}) method")
 
         if(not self.user.horn_permision):
             raise PermissionError("User " + self.user.name + " has no permision control the horn")
@@ -449,7 +465,9 @@ class HTTP_API:
         try:
             conn = http.client.HTTPSConnection(GARNETAPIURL)
             command = ("set_bell" if mode == "on" else "unset_bell")
-            conn.request("POST", "/users_api/v1/systems/" + self.system.id + "/commands/" + command, json.dumps(body), { 'x-access-token': self.__token(), 'Content-Type': 'application/json' })
+            _token=self.__token()
+            _LOGGER.debug(f"Executing POST on /users_api/v1/systems/{self.system.id}/commands/{command} with body={json.dumps(body)} and header='x-access-token': {_token}")
+            conn.request("POST", f"/users_api/v1/systems/{self.system.id}/commands/{command}", json.dumps(body), { 'x-access-token': _token, 'Content-Type': 'application/json' })
             response = json.loads(conn.getresponse().read().decode("utf-8"))
             conn.close()
         except Exception as err:
@@ -473,6 +491,7 @@ class HTTP_API:
 
     def report_emergency(self, type: str, partition_id: int, partition_name: str) -> None:
         """Genera una emergencia."""
+        _LOGGER.debug(f"Executing report_emergency({type},{partition_id},{partition_name}) method")
         body = {}
         body["partition"] = {}
         body["partition"]["name"] = partition_name
@@ -485,7 +504,9 @@ class HTTP_API:
         response = {}
         try:
             conn = http.client.HTTPSConnection(GARNETAPIURL)
-            conn.request("POST", f"/users_api/v1/systems/{self.system.id}/commands/emergency", json.dumps(body), { 'x-access-token': self.__token(), 'Content-Type': 'application/json' })
+            _token=self.__token()
+            _LOGGER.debug(f"Executing POST on /users_api/v1/systems/{self.system.id}/commands/emergency with body={json.dumps(body)} and header='x-access-token': {_token}")
+            conn.request("POST", f"/users_api/v1/systems/{self.system.id}/commands/emergency", json.dumps(body), { 'x-access-token': _token, 'Content-Type': 'application/json' })
             response = json.loads(conn.getresponse().read().decode("utf-8"))
             conn.close()
         except Exception as err:

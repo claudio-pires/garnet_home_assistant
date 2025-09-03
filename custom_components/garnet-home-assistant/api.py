@@ -70,6 +70,10 @@ class GarnetAPI:
             self.connected = True
 
             # Finalmente crea la tarea de monitoreo de keepalive
+            self.status_refresh_task = threading.Thread(target=self.__status_refresh_task, name="statusrefresh")
+            self.status_refresh_task.start()
+
+            # Finalmente crea la tarea de monitoreo de keepalive
             self.connection_monitor_task = threading.Thread(target=self.__connection_monitor_task, name="keepalive")
             self.connection_monitor_task.start()
 
@@ -104,6 +108,17 @@ class GarnetAPI:
                 if n != s.native_state:
                     s.native_state = n
                     self.__coordinator_update_callback(self.httpapi.devices)
+            except Exception as err:                        
+                _LOGGER.exception(err)
+
+
+    def __status_refresh_task(self):
+        """Thread para refresco de estado"""
+        time.sleep(2.5 * self.keepalive_interval) #TODO: Agregar una configuracion
+        while(self.connected):
+            try:
+                time.sleep(2.5 * self.keepalive_interval)   
+                self.httpapi.get_state()
             except Exception as err:                        
                 _LOGGER.exception(err)
 
