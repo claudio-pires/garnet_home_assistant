@@ -121,7 +121,7 @@ class SIAUDPServer():
                         else:
                             # Se trata de un codigo que no se interpreta aun. Analizar si se debe interpretar o descartar
                             _LOGGER.warning("[__messageserver_thread] Panel has sent a message with eventcode: %d, qualifier: %d, partition: %d, zone: %d with  optionalExtendedData: %s and timestamp %s", data.eventcode, data.qualifier, data.partition, data.zone, data.mdata, data.timestamp)
-                            _LOGGER.warning("[__messageserver_thread] Please submit an issue on https://github.com/claudio-pires/garnet-home-assistant/issues/new/choose indicating this code ") # Se trata de un codigo que no se procesa
+                            _LOGGER.warning("[__messageserver_thread] Please submit an issue on https://github.com/claudio-pires/garnet_home_assistant/issues/new/choose indicating this code ") # Se trata de un codigo que no se procesa
                     else:
                         _LOGGER.warning("[__messageserver_thread] Account %s is not a valid suscriber. This message comes from %s", data.account, str(senderAddr))   
                 else:
