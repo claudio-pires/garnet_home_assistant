@@ -119,9 +119,17 @@ class GarnetAPI:
         time.sleep(self.refresh_interval) 
         while(self.connected):
             try:
-                time.sleep(self.refresh_interval)  
-                self.httpapi.get_state()
-                self.__coordinator_update_callback(self.httpapi.devices)
+                time.sleep(self.refresh_interval)
+                arm = False  
+                for device in self.httpapi.devices:
+                    if device.device_type == DeviceType.PARTITION and device.native_state != "disarmed":
+                        arm = True
+                if not arm:
+                    _LOGGER.debug("Actualizando estado de sensores")
+                    self.httpapi.get_state()
+                    self.__coordinator_update_callback(self.httpapi.devices)
+                else:
+                    _LOGGER.debug("No actualiza estado de sensores por estar alguna particion armada")
             except Exception as err:                        
                 _LOGGER.exception(err)
 
