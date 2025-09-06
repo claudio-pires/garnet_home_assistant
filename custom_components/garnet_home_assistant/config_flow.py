@@ -22,6 +22,9 @@ from .const import (
     MIN_KEEPALIVE_INTERVAL, 
     DEFAULT_KEEPALIVE_INTERVAL, 
     CONF_KEEPALIVE_INTERVAL,
+    MIN_REFRESH_INTERVAL, 
+    DEFAULT_REFRESH_INTERVAL, 
+    CONF_REFRESH_INTERVAL,
 )
 
 
@@ -163,6 +166,10 @@ class GarnetIntOptionsFlowHandler(OptionsFlow):
                     CONF_KEEPALIVE_INTERVAL,
                     default=self.options.get(CONF_KEEPALIVE_INTERVAL, DEFAULT_KEEPALIVE_INTERVAL),
                 ): (vol.All(vol.Coerce(int), vol.Clamp(min=MIN_KEEPALIVE_INTERVAL))),
+                vol.Required(
+                    CONF_REFRESH_INTERVAL,
+                    default=self.options.get(CONF_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL),
+                ): (vol.All(vol.Coerce(int), vol.Clamp(min=MIN_REFRESH_INTERVAL))),
             }
         )
         return self.async_show_form(step_id="init", data_schema=data_schema)

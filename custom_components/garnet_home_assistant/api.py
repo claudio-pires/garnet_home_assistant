@@ -12,6 +12,7 @@ from .const import (
     ZONE_BASE_ID, 
     COMM_BASE_ID,
     DEFAULT_KEEPALIVE_INTERVAL,
+    DEFAULT_REFRESH_INTERVAL,
     REFRESHBUTTON_BASE_ID,
     DEFAULT_UDP_PORT
 )
@@ -33,6 +34,7 @@ class GarnetAPI:
     messageserver = None
     __coordinator_update_callback: Callable = None
     keepalive_interval: int = DEFAULT_KEEPALIVE_INTERVAL
+    refresh_interval: int = DEFAULT_REFRESH_INTERVAL
 
     @property
     def controller_name(self) -> str:
@@ -114,11 +116,12 @@ class GarnetAPI:
 
     def __status_refresh_task(self):
         """Thread para refresco de estado"""
-        time.sleep(2.5 * self.keepalive_interval) #TODO: Agregar una configuracion
+        time.sleep(self.refresh_interval) 
         while(self.connected):
             try:
-                time.sleep(2.5 * self.keepalive_interval)   
+                time.sleep(self.refresh_interval)  
                 self.httpapi.get_state()
+                self.__coordinator_update_callback(self.httpapi.devices)
             except Exception as err:                        
                 _LOGGER.exception(err)
 

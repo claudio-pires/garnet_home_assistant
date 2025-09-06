@@ -29,7 +29,8 @@
     "step": {
       "init": {
         "data": {
-          "conf_keepalive": "Keepalive interval(seconds)"
+          "conf_keepalive": "Keepalive interval(seconds)",
+          "conf_refresh": "Refresh sensors status interval(seconds)"
 
         },
         "description": "Setup options",
