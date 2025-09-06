@@ -120,11 +120,13 @@ class GarnetAPI:
         while(self.connected):
             try:
                 time.sleep(self.refresh_interval)
-                arm = False  
+                disarm = True  
                 for device in self.httpapi.devices:
-                    if device.device_type == DeviceType.PARTITION and device.native_state != "disarmed":
-                        arm = True
-                if not arm:
+                    if device.device_type == DeviceType.PARTITION:
+                        if device.native_state == "home" or device.native_state == "away":
+#                            _LOGGER.debug(device)
+                            disarm = False
+                if disarm:
                     _LOGGER.debug("Actualizando estado de sensores")
                     self.httpapi.get_state()
                     self.__coordinator_update_callback(self.httpapi.devices)
