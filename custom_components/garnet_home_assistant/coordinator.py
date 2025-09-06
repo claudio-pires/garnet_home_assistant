@@ -18,6 +18,8 @@ from .const import (
     CONF_SYSTEM, 
     CONF_KEEPALIVE_INTERVAL, 
     DEFAULT_KEEPALIVE_INTERVAL
+    CONF_REFRESH_INTERVAL, 
+    DEFAULT_REFRESH_INTERVAL
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -50,6 +52,7 @@ class GarnetPanelIntegrationCoordinator(DataUpdateCoordinator):
                                                                                                               # update_interval = None makes data will be pushed.
         self.api = GarnetAPI(hass=hass, user=self.user, pwd=self.pwd, account=self.account, systemid=self.systemid)
         self.api.keepalive_interval = int(config_entry.options.get(CONF_KEEPALIVE_INTERVAL, DEFAULT_KEEPALIVE_INTERVAL))
+        self.api.refresh_interval = int(config_entry.options.get(CONF_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL))
         self.api.setcallback(message_callback=self.devices_update_callback)
 
  
