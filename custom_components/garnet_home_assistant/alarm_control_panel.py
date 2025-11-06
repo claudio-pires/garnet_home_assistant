@@ -2,13 +2,17 @@
 
 import logging
 
-from homeassistant.components.alarm_control_panel import AlarmControlPanelEntity 
-from homeassistant.components.alarm_control_panel.const import AlarmControlPanelState, AlarmControlPanelEntityFeature, CodeFormat 
-from homeassistant.core import HomeAssistant, callback 
-from homeassistant.helpers.device_registry import DeviceInfo 
-from homeassistant.helpers.entity_platform import AddEntitiesCallback 
-from homeassistant.helpers.update_coordinator import CoordinatorEntity 
-from homeassistant.config_entries import ConfigEntry 
+from homeassistant.components.alarm_control_panel import AlarmControlPanelEntity
+from homeassistant.components.alarm_control_panel.const import (
+    AlarmControlPanelEntityFeature,
+    AlarmControlPanelState,
+    CodeFormat,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import GarnetPanelIntegrationCoordinator
@@ -45,7 +49,6 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
         #_LOGGER.debug("[_handle_coordinator_update] Entity is now %s", str(self.device))
         self.schedule_update_ha_state()
 
-    
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information."""
@@ -83,7 +86,7 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
         """One of the alarm values listed in the states."""
         if self.device.native_state == "away":
             return AlarmControlPanelState.ARMED_AWAY
-        elif self.device.native_state == "home":
+        if self.device.native_state == "home":
             return AlarmControlPanelState.ARMED_HOME
         return AlarmControlPanelState.DISARMED
 
@@ -96,14 +99,14 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
     @property
     def code_format(self) -> CodeFormat | None:
         return None
-    
+
 
     @property
     def changed_by(self) -> str | None:
         """Last change triggered by."""
         #TODO: Implementar quien hace el cambio. La API devuelve quien fue
         return "Unknow user"
-    
+
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
         """Send disarm command."""
@@ -125,7 +128,7 @@ class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
             return
         await self.coordinator.async_force_device_status(self.device_id, "away")
         await self.coordinator.async_request_refresh()
-        
+
 
     @property
     def icon(self):

@@ -2,18 +2,16 @@
 
 import logging
 
-from homeassistant.components.button import ButtonEntity 
-from homeassistant.config_entries import ConfigEntry 
-from homeassistant.core import HomeAssistant, callback 
-from homeassistant.helpers.device_registry import DeviceInfo 
-from homeassistant.helpers.entity_platform import AddEntitiesCallback 
-from homeassistant.helpers.update_coordinator import CoordinatorEntity 
+from homeassistant.components.button import ButtonEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-
-from .httpapi import DeviceType, GarnetEntity
 from .const import DOMAIN
 from .coordinator import GarnetPanelIntegrationCoordinator
-
+from .httpapi import DeviceType, GarnetEntity
 
 _LOGGER = logging.getLogger(__name__)
 

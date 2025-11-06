@@ -2,24 +2,23 @@
 
 import logging
 
-from homeassistant.components.switch import SwitchEntity 
-from homeassistant.config_entries import ConfigEntry 
-from homeassistant.core import HomeAssistant, callback 
-from homeassistant.helpers.device_registry import DeviceInfo 
-from homeassistant.helpers.entity_platform import AddEntitiesCallback 
-from homeassistant.helpers.update_coordinator import CoordinatorEntity 
+from homeassistant.components.switch import SwitchEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-
-from .httpapi import DeviceType, GarnetEntity
 from .const import DOMAIN
 from .coordinator import GarnetPanelIntegrationCoordinator
-
+from .httpapi import DeviceType, GarnetEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
-    """Set up the Binary Sensors. En este momento solo la sirena"""
+    """Set up the Binary Sensors. En este momento solo la sirena."""
+
     coordinator: GarnetPanelIntegrationCoordinator = hass.data[DOMAIN][config_entry.entry_id].coordinator
     async_add_entities([
         HowlerSwitch(coordinator, device)
@@ -29,10 +28,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 
 
 class HowlerSwitch(CoordinatorEntity, SwitchEntity):
-    """Implementacion del control de sirena"""
+    """Implementacion del control de sirena."""
 
     def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: GarnetEntity) -> None:
         """Initialise sensor."""
+
         super().__init__(coordinator)
         self.device = device
         self.device_id = device.device_id
@@ -42,24 +42,28 @@ class HowlerSwitch(CoordinatorEntity, SwitchEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
-        self.schedule_update_ha_state()    
+
+        self.schedule_update_ha_state()
 
 
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information."""
+
         return self.coordinator.get_device_info()
 
 
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
+
         return self.device.name
-    
+
 
     @property
     def is_on(self) -> bool | None:
         """Return if the binary sensor is on."""
+
         return self.device.native_state == "on"
 
 
@@ -67,7 +71,7 @@ class HowlerSwitch(CoordinatorEntity, SwitchEntity):
     def unique_id(self) -> str:
         """Return unique id."""
         return f"{DOMAIN}-{self.device.device_unique_id}"
-    
+
 
     async def async_turn_on(self, **kwargs):
         """Turn the entity on."""
@@ -85,4 +89,4 @@ class HowlerSwitch(CoordinatorEntity, SwitchEntity):
     def icon(self):
         if(self._icon):
             return self._icon
-        return None    
+        return None

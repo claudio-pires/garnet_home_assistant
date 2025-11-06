@@ -2,18 +2,16 @@
 
 import logging
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity 
-from homeassistant.config_entries import ConfigEntry 
-from homeassistant.core import HomeAssistant, callback 
-from homeassistant.helpers.device_registry import DeviceInfo 
-from homeassistant.helpers.entity_platform import AddEntitiesCallback 
-from homeassistant.helpers.update_coordinator import CoordinatorEntity 
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .httpapi import DeviceType, GarnetEntity
 from .coordinator import GarnetPanelIntegrationCoordinator
-from enum import StrEnum
-
+from .httpapi import DeviceType, GarnetEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,13 +34,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         for device in coordinator.data.devices
         if device.device_type == DeviceType.TEXT_SENSOR
     ])
-        
-    
+
+
 class ZoneSensor(CoordinatorEntity, SensorEntity):
     """Implementation of a zone monitoring sensor."""
 
     def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: GarnetEntity) -> None:
         """Initialise sensor."""
+
         super().__init__(coordinator)
         self.device = device
         self.device_id = device.device_id
@@ -52,6 +51,7 @@ class ZoneSensor(CoordinatorEntity, SensorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator. This method is called by your GarnetPanelIntegrationCoordinator when a successful update runs."""
+
         self.device = self.coordinator.get_device_by_id(self.device.device_type, self.device_id)
         #self._attr_native_value = self.device.native_state
         #self.async_write_ha_state()
@@ -66,24 +66,28 @@ class ZoneSensor(CoordinatorEntity, SensorEntity):
     @property
     def device_class(self) -> str:
         """Returns device class."""
+
         return SensorDeviceClass.ENUM
-    
+
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Return panel device information. This is the parent device"""
+        """Return panel device information. This is the parent device."""
+
         return self.coordinator.get_device_info()
 
 
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
+
         return self.device.name
 
 
     @property
     def unique_id(self) -> str:
         """Return unique id."""
+
         # All entities must have a unique id.  Think carefully what you want this to be as
         # changing it later will cause HA to create new entities.
         return f"{DOMAIN}-{self.device.device_unique_id}"
@@ -92,8 +96,9 @@ class ZoneSensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self):
         """Return the extra state attributes. Add any additional attributes you want on your sensor."""
-        attrs = {}                  
-        #attrs["extra_info"] = "Extra Info"          
+
+        attrs = {}
+        #attrs["extra_info"] = "Extra Info"
         return attrs
 
 
@@ -112,7 +117,7 @@ class ZoneSensor(CoordinatorEntity, SensorEntity):
     def icon(self):
         if(self._icon):
             return self._icon
-        return None    
+        return None
 
 
 class TextSensor(CoordinatorEntity, SensorEntity):
@@ -120,6 +125,7 @@ class TextSensor(CoordinatorEntity, SensorEntity):
 
     def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: GarnetEntity) -> None:
         """Initialise sensor."""
+
         super().__init__(coordinator)
         self.device = device
         self.device_id = device.device_id
@@ -129,15 +135,17 @@ class TextSensor(CoordinatorEntity, SensorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator. This method is called by your GarnetPanelIntegrationCoordinator when a successful update runs."""
+
         self.device = self.coordinator.get_device_by_id(self.device.device_type, self.device_id)
         #self._attr_native_value = self.device.native_state
         #self.async_write_ha_state()
         self.schedule_update_ha_state()
-   
+
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Return panel device information. This is the parent device"""
+        """Return panel device information. This is the parent device."""
+
         return self.coordinator.get_device_info()
 
 
@@ -150,6 +158,7 @@ class TextSensor(CoordinatorEntity, SensorEntity):
     @property
     def unique_id(self) -> str:
         """Return unique id."""
+
         # All entities must have a unique id.  Think carefully what you want this to be as
         # changing it later will cause HA to create new entities.
         return f"{DOMAIN}-{self.device.device_unique_id}"
@@ -158,27 +167,29 @@ class TextSensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self):
         """Return the extra state attributes. Add any additional attributes you want on your sensor."""
-        attrs = {}                  
-        #attrs["extra_info"] = "Extra Info"          
+
+        attrs = {}
+        #attrs["extra_info"] = "Extra Info"
         return attrs
 
 
     @property
     def state(self) -> any:
         return self.device.native_state
-    
+
     @property
     def icon(self):
         if(self._icon):
             return self._icon
         return None
-    
-    
+
+
 class PartitionSensor(CoordinatorEntity, SensorEntity):
     """Implementation of a zone monitoring sensor."""
 
     def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: GarnetEntity) -> None:
         """Initialise sensor."""
+
         super().__init__(coordinator)
         self.device = device
         self.device_id = device.device_id
@@ -188,6 +199,7 @@ class PartitionSensor(CoordinatorEntity, SensorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator. This method is called by your GarnetPanelIntegrationCoordinator when a successful update runs."""
+
         self.device = self.coordinator.get_device_by_id(self.device.device_type, self.device_id)
         #self._attr_native_value = self.device.native_state
         #self.async_write_ha_state()
@@ -202,24 +214,28 @@ class PartitionSensor(CoordinatorEntity, SensorEntity):
     @property
     def device_class(self) -> str:
         """Returns device class."""
+
         return SensorDeviceClass.ENUM
-    
+
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Return panel device information. This is the parent device"""
+        """Return panel device information. This is the parent device."""
+
         return self.coordinator.get_device_info()
 
 
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
+
         return self.device.name
 
 
     @property
     def unique_id(self) -> str:
         """Return unique id."""
+
         # All entities must have a unique id.  Think carefully what you want this to be as
         # changing it later will cause HA to create new entities.
         return f"{DOMAIN}-{self.device.device_unique_id}"
@@ -228,8 +244,9 @@ class PartitionSensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self):
         """Return the extra state attributes. Add any additional attributes you want on your sensor."""
-        attrs = {}                  
-        #attrs["extra_info"] = "Extra Info"          
+
+        attrs = {}
+        #attrs["extra_info"] = "Extra Info"
         return attrs
 
 
@@ -238,11 +255,10 @@ class PartitionSensor(CoordinatorEntity, SensorEntity):
 
         if self.device.alarmed:
             return "Alarmed"
-        else:
-            if (self.device.native_state == "home" or self.device.native_state == "away"):
-                return "Armed"
-            elif self.device.native_state == "disarmed":
-                return "Clear"
+        if (self.device.native_state in {"home", "away"}):
+            return "Armed"
+        if self.device.native_state == "disarmed":
+            return "Clear"
         return "Open zones"
 
 
@@ -250,4 +266,4 @@ class PartitionSensor(CoordinatorEntity, SensorEntity):
     def icon(self):
         if(self._icon):
             return self._icon
-        return None    
+        return None

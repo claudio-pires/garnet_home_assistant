@@ -7,26 +7,29 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
-from homeassistant.const import CONF_SCAN_INTERVAL
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
-from .api import GarnetAPI, APIConnectionError
+from .api import APIConnectionError, GarnetAPI
 from .const import (
-    DOMAIN, 
-    CONF_ACCOUNT, 
-    CONF_SYSTEM, 
-    CONF_GARNETUSER, 
-    CONF_GARNETPASS, 
-    MIN_KEEPALIVE_INTERVAL, 
-    DEFAULT_KEEPALIVE_INTERVAL, 
+    CONF_ACCOUNT,
+    CONF_GARNETPASS,
+    CONF_GARNETUSER,
     CONF_KEEPALIVE_INTERVAL,
-    MIN_REFRESH_INTERVAL, 
-    DEFAULT_REFRESH_INTERVAL, 
     CONF_REFRESH_INTERVAL,
+    CONF_SYSTEM,
+    DEFAULT_KEEPALIVE_INTERVAL,
+    DEFAULT_REFRESH_INTERVAL,
+    DOMAIN,
+    MIN_KEEPALIVE_INTERVAL,
+    MIN_REFRESH_INTERVAL,
 )
-
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,13 +46,16 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect.
-       Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user."""
+
+    Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
+    """
+
     _LOGGER.debug("[validate_input]")
     api = GarnetAPI(hass, data[CONF_GARNETUSER], data[CONF_GARNETPASS], data[CONF_ACCOUNT], data[CONF_SYSTEM])
     try:
        await hass.async_add_executor_job(api.connect)
     except APIConnectionError as err:
-        _LOGGER.exception(err)
+        _LOGGER.exception("Exception")
         raise CannotConnect from err
     return {"title": f"Garnet Panel Integration - {data[CONF_SYSTEM]}"}
 
@@ -78,15 +84,14 @@ class GarnetIntConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Validate that the setup data is valid and if not handle errors.
                 # The errors["base"] values match the values in your strings.json and translation files.
                 info = await validate_input(self.hass, user_input)
-            except CannotConnect as err: 
-                _LOGGER.exception(err)
+            except CannotConnect:
+                _LOGGER.exception("Exception")
                 errors["base"] = "cannot_connect"
-            except InvalidAuth as err: 
-                _LOGGER.exception(err)
+            except InvalidAuth:
+                _LOGGER.exception("Exception")
                 errors["base"] = "invalid_auth"
-            except Exception as err:    # pylint: disable=broad-except
-                _LOGGER.exception(err)
-                _LOGGER.exception("Unexpected exception")
+            except Exception:    # pylint: disable=broad-except
+                _LOGGER.exception("Exception")
                 errors["base"] = "unknown"
 
             if "base" not in errors:
@@ -146,7 +151,6 @@ class GarnetIntConfigFlow(ConfigFlow, domain=DOMAIN):
 
 class GarnetIntOptionsFlowHandler(OptionsFlow):
     """Handles the options flow."""
-
 
     def __init__(self, config_entry: ConfigEntry) -> None:
         """Initialize options flow."""
