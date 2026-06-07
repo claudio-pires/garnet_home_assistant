@@ -13,9 +13,11 @@ from .const import (
     CONF_ACCOUNT,
     CONF_GARNETPASS,
     CONF_GARNETUSER,
+    CONF_GARNET_SESSION_TTL,
     CONF_KEEPALIVE_INTERVAL,
     CONF_REFRESH_INTERVAL,
     CONF_SYSTEM,
+    DEFAULT_GARNET_SESSION_TTL,
     DEFAULT_KEEPALIVE_INTERVAL,
     DEFAULT_REFRESH_INTERVAL,
 )
@@ -52,6 +54,7 @@ class GarnetPanelIntegrationCoordinator(DataUpdateCoordinator):
         self.api = GarnetAPI(hass=hass, user=self.user, pwd=self.pwd, account=self.account, systemid=self.systemid, uniqueid=self.uniqueid)
         self.api.keepalive_interval = int(config_entry.options.get(CONF_KEEPALIVE_INTERVAL, DEFAULT_KEEPALIVE_INTERVAL))
         self.api.refresh_interval = int(config_entry.options.get(CONF_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL))
+        self.api.tokenlifespan = int(config_entry.options.get(CONF_GARNET_SESSION_TTL, DEFAULT_GARNET_SESSION_TTL))
         self.api.setcallback(message_callback=self.devices_update_callback)
 
 

@@ -23,12 +23,15 @@ from .const import (
     CONF_GARNETUSER,
     CONF_KEEPALIVE_INTERVAL,
     CONF_REFRESH_INTERVAL,
+    CONF_GARNET_SESSION_TTL, 
     CONF_SYSTEM,
     DEFAULT_KEEPALIVE_INTERVAL,
     DEFAULT_REFRESH_INTERVAL,
+    DEFAULT_GARNET_SESSION_TTL,
     DOMAIN,
     MIN_KEEPALIVE_INTERVAL,
     MIN_REFRESH_INTERVAL,
+    MIN_GARNET_SESSION_TTL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -174,6 +177,10 @@ class GarnetIntOptionsFlowHandler(OptionsFlow):
                     CONF_REFRESH_INTERVAL,
                     default=self.options.get(CONF_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL),
                 ): (vol.All(vol.Coerce(int), vol.Clamp(min=MIN_REFRESH_INTERVAL))),
+                vol.Required(
+                    CONF_GARNET_SESSION_TTL,
+                    default=self.options.get(CONF_GARNET_SESSION_TTL, DEFAULT_GARNET_SESSION_TTL),
+                ): (vol.All(vol.Coerce(int), vol.Clamp(min=MIN_GARNET_SESSION_TTL))),
             }
         )
         return self.async_show_form(step_id="init", data_schema=data_schema)

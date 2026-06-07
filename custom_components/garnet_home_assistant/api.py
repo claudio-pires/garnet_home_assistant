@@ -17,6 +17,8 @@ from .const import (
     PARTITION_BASE_ID,
     REFRESHBUTTON_BASE_ID,
     ZONE_BASE_ID,
+    DEFAULT_GARNET_SESSION_TTL
+
 )
 from .exceptions import GeneralGarnetError
 from .httpapi import HTTP_API, DeviceType, GarnetEntity
@@ -34,6 +36,7 @@ class GarnetAPI:
     __coordinator_update_callback: Callable = None
     keepalive_interval: int = DEFAULT_KEEPALIVE_INTERVAL
     refresh_interval: int = DEFAULT_REFRESH_INTERVAL
+    tokenlifespan: int = DEFAULT_GARNET_SESSION_TTL
 
     @property
     def controller_name(self) -> str:
@@ -70,7 +73,7 @@ class GarnetAPI:
 
             # Se conecta a la API por primera vez y obtiene el modelo de datos del sistema configurado desde la WEB de garnet
             # Si falla devuelve una excepcion.
-            self.httpapi = HTTP_API(email=self.email, pwd=self.password, panelid=self.systemid, controller=self.controller_name)
+            self.httpapi = HTTP_API(email=self.email, pwd=self.password, panelid=self.systemid, controller=self.controller_name, lifespan=self.tokenlifespan)
             self.httpapi.connect()
 
             # Si llega aca significa que se pudo conectar a la WEB Garnet y que generó el modelo de entidades por lo que seeeeee suscribe

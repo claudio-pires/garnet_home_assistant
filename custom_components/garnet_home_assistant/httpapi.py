@@ -20,7 +20,6 @@ from .const import (
     REFRESHBUTTON_BASE_ID,
     RETRY_LOGIN_ON_IRRESPONSIVE,
     TIMEDPANICBUTTON_BASE_ID,
-    TOKEN_TIME_SPAN,
     WAIT_ON_LOGIN_IRRESPONSIVE,
     ZONE_BASE_ID,
 )
@@ -85,7 +84,7 @@ class HTTP_API:
     zonas_inhibidas: int
 
 
-    def __init__(self, email: str, pwd: str, panelid: str, controller: str) -> None:
+    def __init__(self, email: str, pwd: str, panelid: str, controller: str, lifespan: int) -> None:
         """Initialise."""
 
         self.panelid = panelid
@@ -95,13 +94,14 @@ class HTTP_API:
         self.zone_mask = 0
         self.devices = None
         self.controller_name = controller
+        self.token_time_span = lifespan
 
 
     def connect(self):
         """Se conecta a WEB GARNET y obtiene la informacion de la cuenta y del panel actualizando el modelo de datos."""
 
         try:
-            self.__collect_system_info()    # Levanta configuracion de la cuenta
+            
             retries = 5
             while(retries > 0):             # En el proceso de obtener estado inicial es importante varios retries porque la WEB de Garnet es lenta
                 try:
@@ -119,14 +119,16 @@ class HTTP_API:
             raise
 
 
-    def __token(self) -> str:
+    def __token(self, force_get_state: bool = False) -> str:
         """Esta funcion devuelve el token de autenticacion si es mas viejo que lo configurado."""
 
         _span = time.time() - self.session_token.creation
-        _LOGGER.debug("Token timespan is %d with max configured is %d", _span, TOKEN_TIME_SPAN)
-        if _span > TOKEN_TIME_SPAN:
+        _LOGGER.debug("Token timespan is %d with max configured is %d", _span, self.token_time_span)
+        if _span > self.token_time_span:
             self.__login()
-            return self.session_token.token
+            force_get_state = True
+        if force_get_state:
+            self.get_state()
         return self.session_token.token
 
 
@@ -134,9 +136,12 @@ class HTTP_API:
         """Obtiene token de sesion."""
         _LOGGER.info("Executing Login() method")
 
-        body = {}
+        body = { }
         body["email"] = self.user.email
         body["password"] = self.user.password
+
+        header = {}
+        header["x-client-web"] = "1"
 
         retry = RETRY_LOGIN_ON_IRRESPONSIVE
         timeout = WAIT_ON_LOGIN_IRRESPONSIVE
@@ -146,8 +151,8 @@ class HTTP_API:
             while retry > 0:
 
                 url = f"https://{GARNETAPIURL}/users_api/v1/auth/login"
-                _LOGGER.debug("Executing POST on %s with body=%s", url, json.dumps(body))
-                r = requests.post(url, json=body)
+                _LOGGER.debug("Executing POST on %s with body=%s and header=%s...", url, json.dumps(body), json.dumps(header))
+                r = requests.post(url, json=body, headers=header, timeout=5)
                 if r.status_code == 200:
                     response = r.json()
                     if(response.get("success")):
@@ -198,10 +203,14 @@ class HTTP_API:
 
         try:
             _token = self.__token()
+            header = {}
+            header["x-client-web"] = "1"
+            header["x-access-token"] = _token
+
 
             url = f"https://{GARNETAPIURL}/users_api/v1/systems/{self.panelid}"
-            _LOGGER.debug("Executing GET on %s with no body and header='x-access-token': %s...", url, _token[:6])
-            r = requests.get(url, headers={ 'x-access-token': _token })
+            _LOGGER.debug("Executing GET on %s with no body and header=%s...", url, json.dumps(header))
+            r = requests.get(url, headers=header, timeout=5)
             if r.status_code == 200:
                 response = r.json()
                 if(response.get("success")):
@@ -298,6 +307,7 @@ class HTTP_API:
         """Parseo del estado del panel."""
 
         # Nota: se obtiene de la funcion processStatus en js de la web de garnetcontrol
+
         _LOGGER.info("Executing __update_status() method")
         _LOGGER.debug("Se recibe trama %s", status)
 
@@ -315,8 +325,12 @@ class HTTP_API:
         _LOGGER.debug("Estado de inhibicion de zonas es %s", bin(self.zonas_inhibidas))
 
         estadoDeParticiones1 = int(status[5:7], 16)
-        estadoDeParticiones2 = int(status[35:37], 16)
-        demorasPanel = int(status[37:39], 16)
+        if(len(status) > 37):
+            estadoDeParticiones2 = int(status[35:37], 16)
+            demorasPanel = int(status[37:39], 16)
+        else:
+            estadoDeParticiones2 = 0
+            demorasPanel = 0
         _LOGGER.debug("estadoDeParticiones1 = %d, estadoDeParticiones2 = %d y demorasPanel = %d",  estadoDeParticiones1, estadoDeParticiones2, demorasPanel)
 
         flagArmado = False
@@ -383,10 +397,11 @@ class HTTP_API:
         """Chequeo de estado."""
 
         _LOGGER.info("Executing get_state() method")
-        body = {}
-        body["seq"] = self.__sequence()
-        body["timeout"] = GARNETAPITIMEOUT
-
+        
+        if self.devices is None:
+            self.__collect_system_info()    # Levanta configuracion de la cuenta
+      
+       
         error = None
 
         retry = RETRY_LOGIN_ON_IRRESPONSIVE
@@ -397,9 +412,19 @@ class HTTP_API:
 
                 _token = self.__token()
 
+                body = {}
+                body["seq"] = self.__sequence(increment = 1)
+                body["timeout"] = GARNETAPITIMEOUT
+
+                header = {}
+                header["x-client-web"] = "1"
+                header["x-access-token"] = _token
+                header["Content-Type"] = 'application/json'
+
+
                 url = f"https://{GARNETAPIURL}/users_api/v1/systems/{self.panelid}/commands/state"
-                _LOGGER.debug("Executing POST on %s with body=%s and header='x-access-token': %s...", url, json.dumps(body), _token[:6])
-                r = requests.post(url, json=body, headers={ 'x-access-token': _token, 'Content-Type': 'application/json' })
+                _LOGGER.debug("Executing POST on %s with body=%s and header=%s...", url, json.dumps(body), json.dumps(header))
+                r = requests.post(url, json=body, headers=header, timeout=15)
                 if r.status_code == 200:
                     response = r.json()
                     if(response.get("success")):
@@ -445,23 +470,28 @@ class HTTP_API:
         if(not self.user.arm_permision):
             raise GarnetPermissionError(f"User {self.user.name} has no permision for arming the partition")
 
-        # Se chequea si hay zonas abiertas
-        self.get_state()
-        if self.zonas_abiertas > 0:
-            raise GeneralGarnetError("Open zones, Partition cannot be armed")
-
-        body = {}
-        body["seq"] = self.__sequence(increment = 1)
-        body["partNumber"] = str(partition)
-        body["timeout"] = GARNETAPITIMEOUT
-
-        command = ("delayed" if mode == "home" else "away")
-        _token=self.__token()   # Obtiene el token, si no puede genera una excepcion
-        error = None
         try:
+            _token=self.__token(force_get_state = True)   # Obtiene el token, si no puede genera una excepcion
+            if self.zonas_abiertas > 0:
+                raise GeneralGarnetError("Open zones, Partition cannot be armed")
+
+            error = None
+
+            body = {}
+            body["seq"] = self.__sequence(increment = 1)
+            body["partNumber"] = str(partition)
+            body["timeout"] = GARNETAPITIMEOUT
+
+            header = {}
+            header["x-client-web"] = "1"
+            header["x-access-token"] = _token
+            header["Content-Type"] = 'application/json'
+
+            command = ("delayed" if mode == "home" else "away")
+
             url = f"https://{GARNETAPIURL}/users_api/v1/systems/{self.system.id}/commands/arm/{command}"
-            _LOGGER.debug("Executing POST on %s with body=%s and header='x-access-token': %s...", url, json.dumps(body), _token[:6])
-            r = requests.post(url, json=body, headers={ 'x-access-token': _token, 'Content-Type': 'application/json' })
+            _LOGGER.debug("Executing POST on %s with body=%s and header=%s...", url, json.dumps(body),json.dumps(header))
+            r = requests.post(url, json=body, headers=header, timeout=5)
             if r.status_code == 200:
                 response = r.json()
                 if(response.get("success")):
@@ -494,18 +524,23 @@ class HTTP_API:
         if(not self.user.disarm_permision):
             raise GarnetPermissionError(f"User {self.user.name} has no permision for disarming the partition")
 
-        body = {}
-        body["seq"] = self.__sequence(increment = 1)
-        body["partNumber"] = str(partition)
-        body["timeout"] = GARNETAPITIMEOUT
-
-        _token=self.__token()   # Obtiene el token, si no puede genera una excepcion
-        error = None
-
         try:
+            _token=self.__token()   # Obtiene el token, si no puede genera una excepcion
+            error = None
+
+            body = {}
+            body["seq"] = self.__sequence(increment = 1)
+            body["partNumber"] = str(partition)
+            body["timeout"] = GARNETAPITIMEOUT
+
+            header = {}
+            header["x-client-web"] = "1"
+            header["x-access-token"] = _token
+            header["Content-Type"] = 'application/json'
+
             url = f"https://{GARNETAPIURL}/users_api/v1/systems/{self.system.id}/commands/disarm"
-            _LOGGER.debug("Executing POST on %s with body=%s and header='x-access-token': %s...", url, json.dumps(body), _token[:6])
-            r = requests.post(url, json=body, headers={ 'x-access-token': _token, 'Content-Type': 'application/json' })
+            _LOGGER.debug("Executing POST on %s with body=%s and header=%s...", url, json.dumps(body),json.dumps(header))
+            r = requests.post(url, json=body, headers=header, timeout=5)
             if r.status_code == 200:
                 response = r.json()
                 if(response.get("success")):
@@ -538,18 +573,24 @@ class HTTP_API:
         if(not self.user.horn_permision):
             raise GarnetPermissionError(f"User {self.user.name} hhas no permision for control the horn")
 
-        body = {}
-        body["seq"] = self.__sequence(increment = 1)
-        body["timeout"] = GARNETAPITIMEOUT
-
-        _token=self.__token()   # Obtiene el token, si no puede genera una excepcion
-        error = None
-
         try:
+            _token=self.__token()   # Obtiene el token, si no puede genera una excepcion
+
+            body = {}
+            body["seq"] = self.__sequence(increment = 1)
+            body["timeout"] = GARNETAPITIMEOUT
+
+            header = {}
+            header["x-client-web"] = "1"
+            header["x-access-token"] = _token
+            header["Content-Type"] = 'application/json'
+
+            error = None
+
             command = ("set_bell" if mode == "on" else "unset_bell")
             url = f"https://{GARNETAPIURL}/users_api/v1/systems/{self.system.id}/commands/{command}"
-            _LOGGER.debug("Executing POST on %s with body=%s and header='x-access-token': %s...", url, json.dumps(body), _token[:6])
-            r = requests.post(url, json=body, headers={ 'x-access-token': _token, 'Content-Type': 'application/json' })
+            _LOGGER.debug("Executing POST on %s with body=%s and header=%s...", url, json.dumps(body),json.dumps(header))
+            r = requests.post(url, json=body, headers=header, timeout=5)
             if r.status_code == 200:
                 response = r.json()
                 if(response.get("success")):
@@ -578,22 +619,28 @@ class HTTP_API:
 
         _LOGGER.info("Executing report_emergency(%s,%d,%s) method", type, partition_id, partition_name)
 
-        body = {}
-        body["partition"] = {}
-        body["partition"]["name"] = partition_name
-        body["partition"]["number"] = partition_id
-        body["partition"]["enabled"] = True
-        body["partition"]["editedName"] = partition_name
-        body["emergencyType"] = 1 if type == "Medico" else (3 if type == "Incendio" else (4 if type == "Panico" else 2))
-        body["timeout"] = GARNETAPITIMEOUT
-
-        _token=self.__token()   # Obtiene el token, si no puede genera una excepcion
-        error = None
-
         try:
+            _token=self.__token()   # Obtiene el token, si no puede genera una excepcion
+
+            body = {}
+            body["partition"] = {}
+            body["partition"]["name"] = partition_name
+            body["partition"]["number"] = partition_id
+            body["partition"]["enabled"] = True
+            body["partition"]["editedName"] = partition_name
+            body["emergencyType"] = 1 if type == "Medico" else (3 if type == "Incendio" else (4 if type == "Panico" else 2))
+            body["timeout"] = GARNETAPITIMEOUT
+
+            header = {}
+            header["x-client-web"] = "1"
+            header["x-access-token"] = _token
+            header["Content-Type"] = 'application/json'
+
+            error = None
+
             url = f"https://{GARNETAPIURL}/users_api/v1/systems/{self.system.id}/commands/emergency"
-            _LOGGER.debug("Executing POST on %s with body=%s and header='x-access-token': %s...", url, json.dumps(body), _token[:6])
-            r = requests.post(url, json=body, headers={ 'x-access-token': _token, 'Content-Type': 'application/json' })
+            _LOGGER.debug("Executing POST on %s with body=%s and header=%s...", url, json.dumps(body),json.dumps(header))
+            r = requests.post(url, json=body, headers=header, timeout=5)
             if r.status_code == 200:
                 response = r.json()
                 if(response.get("success")):
