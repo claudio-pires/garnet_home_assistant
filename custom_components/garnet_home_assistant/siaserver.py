@@ -118,6 +118,12 @@ class SIAUDPServer:
                             SIAUDPServer.subscribers[data.account](action = siacode.keyboard_disarm, user = data.zone, partition = data.partition)
                         elif(data.eventcode == 401 and data.qualifier == 3):
                             SIAUDPServer.subscribers[data.account](action = siacode.keyboard_arm, user = data.zone, partition = data.partition)
+                        # BEGIN solicitado por usuario  https://github.com/hugodrivera
+                        elif(data.eventcode == 400 and data.qualifier == 1):
+                            SIAUDPServer.subscribers[data.account](action = siacode.keyboard_disarm, user = data.zone, partition = data.partition)
+                        elif(data.eventcode == 400 and data.qualifier == 3):
+                            SIAUDPServer.subscribers[data.account](action = siacode.keyboard_arm, user = data.zone, partition = data.partition)
+                        # END solicitado por usuario  https://github.com/hugodrivera
                         elif(data.eventcode == 130 and data.qualifier == 1):
                             SIAUDPServer.subscribers[data.account](action = siacode.triggerzone, zone = data.zone, partition = data.partition)
                         elif(data.eventcode == 130 and data.qualifier == 3):

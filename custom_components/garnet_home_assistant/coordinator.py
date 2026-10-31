@@ -45,8 +45,10 @@ class GarnetPanelIntegrationCoordinator(DataUpdateCoordinator):
         self.systemid = config_entry.data[CONF_SYSTEM]
         self.user = config_entry.data[CONF_GARNETUSER]
         self.pwd = config_entry.data[CONF_GARNETPASS]
-
         self.uniqueid = config_entry.unique_id
+
+        _LOGGER.debug(f"Initializing GarnetPanelIntegrationCoordinator with account={self.account}, systemid={self.systemid}, user={self.user}, pwd={self.pwd} and uniqueid={self.uniqueid}")
+
         super().__init__(hass, _LOGGER, name=f"{DOMAIN} ({self.uniqueid})", update_method=self.update_data, update_interval=None)   # Initialise DataUpdateCoordinator
                                                                                                               # update_method is the update method
                                                                                                               # to get devices on first load.

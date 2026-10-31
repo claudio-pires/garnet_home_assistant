@@ -54,7 +54,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     """
 
     _LOGGER.debug("[validate_input]")
-    api = GarnetAPI(hass, data[CONF_GARNETUSER], data[CONF_GARNETPASS], data[CONF_ACCOUNT], data[CONF_SYSTEM])
+    api = GarnetAPI(hass=hass, user=data[CONF_GARNETUSER], pwd=data[CONF_GARNETPASS], account=data[CONF_ACCOUNT], systemid=data[CONF_SYSTEM])
     try:
        await hass.async_add_executor_job(api.connect)
     except APIConnectionError as err:

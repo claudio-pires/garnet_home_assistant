@@ -44,7 +44,7 @@ class GarnetAPI:
         return self.account.replace(".", "_")
 
 
-    def __init__(self, hass: HomeAssistant, user: str, pwd: str, account: str, systemid: str, uniqueid: str) -> None:
+    def __init__(self, hass: HomeAssistant, user: str, pwd: str, account: str, systemid: str, uniqueid: str = None) -> None:
         """Initialise."""
         self.account = account
         self.systemid = systemid
