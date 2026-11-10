@@ -1,13 +1,12 @@
 """Garnet integration using DataUpdateCoordinator."""
 
-from dataclasses import dataclass
-import logging
 
+import logging
+from dataclasses import dataclass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import DOMAIN, HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-
 from .api import APIAuthError, GarnetAPI
 from .const import (
     CONF_ACCOUNT,
@@ -39,24 +38,27 @@ class GarnetPanelIntegrationCoordinator(DataUpdateCoordinator):
 
     data: APIData
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
-        """Initialize coordinator."""
-        self.account = config_entry.data[CONF_ACCOUNT]
-        self.systemid = config_entry.data[CONF_SYSTEM]
-        self.user = config_entry.data[CONF_GARNETUSER]
-        self.pwd = config_entry.data[CONF_GARNETPASS]
-        self.uniqueid = config_entry.unique_id
+    def __init__(self, _hass: HomeAssistant, _config_entry: ConfigEntry) -> None:
+        """Initializes the coordinator."""
 
-        _LOGGER.debug(f"Initializing GarnetPanelIntegrationCoordinator with account={self.account}, systemid={self.systemid}, user={self.user}, pwd={self.pwd} and uniqueid={self.uniqueid}")
+        self.account = _config_entry.data[CONF_ACCOUNT]
+        self.systemid = _config_entry.data[CONF_SYSTEM]
+        self.user = _config_entry.data[CONF_GARNETUSER]
+        self.pwd = _config_entry.data[CONF_GARNETPASS]
+        self.uniqueid = _config_entry.unique_id
 
-        super().__init__(hass, _LOGGER, name=f"{DOMAIN} ({self.uniqueid})", update_method=self.update_data, update_interval=None)   # Initialise DataUpdateCoordinator
-                                                                                                              # update_method is the update method
-                                                                                                              # to get devices on first load.
-                                                                                                              # update_interval = None makes data will be pushed.
-        self.api = GarnetAPI(hass=hass, user=self.user, pwd=self.pwd, account=self.account, systemid=self.systemid, uniqueid=self.uniqueid)
-        self.api.keepalive_interval = int(config_entry.options.get(CONF_KEEPALIVE_INTERVAL, DEFAULT_KEEPALIVE_INTERVAL))
-        self.api.refresh_interval = int(config_entry.options.get(CONF_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL))
-        self.api.tokenlifespan = int(config_entry.options.get(CONF_GARNET_SESSION_TTL, DEFAULT_GARNET_SESSION_TTL))
+        _LOGGER.info("\n===================================================================================================\n Garnet Alarm Panels integration for Home Assistant\n https://github.com/claudio-pires/garnet_home_assistant\n This integration is not affiliated with or endorsed by Garnet Security Systems.\n It has been created monitoring comunication protocols with no documentation from\n Garnet Technology and tested with a Garnet PC-732-G panel with a 500G communication module\n This integration is provided as-is and without warranty. Use at your own risk.\n Feel free to share your logs to support your configuration and/or contribute for the project.\n===================================================================================================")
+
+        _LOGGER.debug("Initializing GarnetPanelIntegrationCoordinator with account=%s, systemid=%s, user=%s, pwd=%s and uniqueid=%s", self.account, self.systemid, self.user, "*" * len(self.pwd), self.uniqueid)
+
+        super().__init__(_hass, _LOGGER, name=f"{DOMAIN} ({self.uniqueid})", update_method=self.update_data, update_interval=None)  # Initialise DataUpdateCoordinator
+                                                                                                                                    # update_method is the update method
+                                                                                                                                    # to get devices on first load.
+                                                                                                                                    # update_interval = None makes data will be pushed.
+        self.api = GarnetAPI(hass=_hass, user=self.user, pwd=self.pwd, account=self.account, systemid=self.systemid, uniqueid=self.uniqueid)
+        self.api.keepalive_interval = int(_config_entry.options.get(CONF_KEEPALIVE_INTERVAL, DEFAULT_KEEPALIVE_INTERVAL))
+        self.api.refresh_interval = int(_config_entry.options.get(CONF_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL))
+        self.api.tokenlifespan = int(_config_entry.options.get(CONF_GARNET_SESSION_TTL, DEFAULT_GARNET_SESSION_TTL))
         self.api.setcallback(message_callback=self.devices_update_callback)
 
 
@@ -65,14 +67,13 @@ class GarnetPanelIntegrationCoordinator(DataUpdateCoordinator):
 
         panel = self.api.httpapi.system
         if panel is not None:
-            return DeviceInfo(name = f"{panel.name} ({panel.id})", manufacturer = panel.manufacturer, model = panel.modelName,
-                              sw_version = panel.versionName, identifiers = {(DOMAIN, f"{DOMAIN} ({self.uniqueid})")})
+            return DeviceInfo(name = f"{panel.name} ({panel.id})", manufacturer = panel.manufacturer, model = panel.modelName, sw_version = panel.versionName, identifiers = {(DOMAIN, f"{DOMAIN} ({self.uniqueid})")})
         return None
 
     def devices_update_callback(self, devs: list[GarnetEntity]):
         """Receive callback from api with device update."""
 
-        _LOGGER.debug("[devices_update_callback] Updating devices status")
+        _LOGGER.debug("Updating devices status...")
         self.async_set_updated_data(APIData(self.api.controller_name, devs))
 
 

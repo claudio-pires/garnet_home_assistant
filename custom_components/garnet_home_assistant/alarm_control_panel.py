@@ -21,11 +21,14 @@ from .httpapi import DeviceType, GarnetEntity
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
+async def async_setup_entry(_hass: HomeAssistant, _config_entry: ConfigEntry, _async_add_entities: AddEntitiesCallback):
     """Set up the Sensors."""
-    coordinator: GarnetPanelIntegrationCoordinator = hass.data[DOMAIN][config_entry.entry_id].coordinator
 
-    async_add_entities([
+    _LOGGER.debug("Setting up GarnetAlarmPanel (AlarmControlPanelEntity) entities...")
+
+    coordinator: GarnetPanelIntegrationCoordinator = _hass.data[DOMAIN][_config_entry.entry_id].coordinator
+
+    _async_add_entities([
         GarnetAlarmPanel(coordinator, device)
         for device in coordinator.data.devices
         if device.device_type == DeviceType.PARTITION
@@ -35,12 +38,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 class GarnetAlarmPanel(CoordinatorEntity, AlarmControlPanelEntity):
     """Implementation of the Garnet Alarm Panel."""
 
-    def __init__(self, coordinator: GarnetPanelIntegrationCoordinator, device: GarnetEntity) -> None:
+    def __init__(self, _coordinator: GarnetPanelIntegrationCoordinator, _device: GarnetEntity) -> None:
         """Initialise sensor."""
-        super().__init__(coordinator)
-        self.device = device
-        self.device_id = device.device_id
-        self._icon = device.icon
+        super().__init__(_coordinator)
+
+        _LOGGER.debug("Instantiating GarnetAlarmPanel for device=%s", _device)
+
+        self.device = _device
+        self.device_id = _device.device_id
+        self._icon = _device.icon
 
 
     @callback

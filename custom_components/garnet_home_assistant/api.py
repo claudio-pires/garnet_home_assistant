@@ -176,7 +176,7 @@ class GarnetAPI:
         update = False
         _LOGGER.debug("[__sia_processing_task] Receiving action:%s, partition:%d, zone:%d and  user:%d",str(action), partition, zone, user)
         device = self.httpapi.__get_device_by_id__(COMM_BASE_ID)
-        device.uptime = time.time()                             # 25/05/30 Ahora se actualiza con cualquier mensaje no solo keep alive
+        device.uptime = time.time()                            # 25/05/30 Ahora se actualiza con cualquier mensaje no solo keep alive
         if(action == siacode.bypass): # bypass de una zona
             device = self.httpapi.__get_device_by_id__(ZONE_BASE_ID + zone)
             device.native_state = device.native_state | 2
